@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, desc, asc, lt, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, products, customers, salesOrders, inventory } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,75 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// Analytics queries
+export async function getDashboardStats() {
+  const db = await getDb();
+  if (!db) return null;
+
+  try {
+    const totalProducts = await db.select({ count: sql`COUNT(*)` }).from(products);
+    const totalCustomers = await db.select({ count: sql`COUNT(*)` }).from(customers);
+    const totalOrders = await db.select({ count: sql`COUNT(*)` }).from(salesOrders);
+    const totalRevenue = await db.select({ total: sql`SUM(totalAmount)` }).from(salesOrders).where(eq(salesOrders.status, 'completed'));
+    const totalInventoryValue = await db.select({ total: sql`SUM(inventoryValue)` }).from(inventory);
+
+    return {
+      totalProducts: totalProducts[0]?.count || 0,
+      totalCustomers: totalCustomers[0]?.count || 0,
+      totalOrders: totalOrders[0]?.count || 0,
+      totalRevenue: totalRevenue[0]?.total || 0,
+      totalInventoryValue: totalInventoryValue[0]?.total || 0,
+    };
+  } catch (error) {
+    console.error('[Database] Failed to get dashboard stats:', error);
+    return null;
+  }
+}
+
+export async function getTopProducts(limit: number = 10) {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    return await db.select().from(products).orderBy(desc(products.salePrice)).limit(limit);
+  } catch (error) {
+    console.error('[Database] Failed to get top products:', error);
+    return [];
+  }
+}
+
+export async function getTopCustomers(limit: number = 10) {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    return await db.select().from(customers).orderBy(desc(customers.totalPurchases)).limit(limit);
+  } catch (error) {
+    console.error('[Database] Failed to get top customers:', error);
+    return [];
+  }
+}
+
+export async function getRecentOrders(limit: number = 10) {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    return await db.select().from(salesOrders).orderBy(desc(salesOrders.orderDate)).limit(limit);
+  } catch (error) {
+    console.error('[Database] Failed to get recent orders:', error);
+    return [];
+  }
+}
+
+export async function getLowInventoryProducts(threshold: number = 100) {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    return await db.select().from(products).where(lt(products.available, threshold as any)).orderBy(asc(products.available));
+  } catch (error) {
+    console.error('[Database] Failed to get low inventory products:', error);
+    return [];
+  }
+}
