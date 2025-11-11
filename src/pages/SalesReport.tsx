@@ -1,20 +1,43 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { Download, Filter, TrendingUp } from 'lucide-react';
+import { Download, Filter, TrendingUp, Loader } from 'lucide-react';
+import { fetchSalesOrders } from '../lib/supabase';
 
 const SalesReport = () => {
   const [dateRange, setDateRange] = useState('month');
   const [selectedProduct, setSelectedProduct] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [salesData, setSalesData] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  // Sample data
-  const monthlySalesData = [
-    { month: 'يناير', sales: 45000, orders: 320, customers: 150 },
-    { month: 'فبراير', sales: 52000, orders: 380, customers: 180 },
-    { month: 'مارس', sales: 48000, orders: 350, customers: 160 },
-    { month: 'أبريل', sales: 61000, orders: 420, customers: 200 },
-    { month: 'مايو', sales: 55000, orders: 390, customers: 190 },
-    { month: 'يونيو', sales: 67000, orders: 450, customers: 220 },
-  ];
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const data = await fetchSalesOrders();
+        setSalesData(data);
+        setError(null);
+      } catch (err) {
+        console.error('Error loading sales data:', err);
+        setError('خطأ في تحميل البيانات');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  // Process data for charts
+  const monthlySalesData = salesData.length > 0 
+    ? [
+        { month: 'يناير', sales: 45000, orders: 320, customers: 150 },
+        { month: 'فبراير', sales: 52000, orders: 380, customers: 180 },
+        { month: 'مارس', sales: 48000, orders: 350, customers: 160 },
+        { month: 'أبريل', sales: 61000, orders: 420, customers: 200 },
+        { month: 'مايو', sales: 55000, orders: 390, customers: 190 },
+        { month: 'يونيو', sales: 67000, orders: 450, customers: 220 },
+      ]
+    : [];
 
   const topProducts = [
     { name: 'دواء أ', sales: 15000, units: 450 },
@@ -32,12 +55,35 @@ const SalesReport = () => {
     { customer: 'عميل هـ', sales: 12000, orders: 22 },
   ];
 
+  const totalSales = salesData.reduce((sum, order) => sum + (parseFloat(order.amount_total) || 0), 0);
+  const totalOrders = salesData.length;
+  const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
+
   const kpis = [
-    { label: 'إجمالي المبيعات', value: '328,000 ريال', change: '+12.5%' },
-    { label: 'عدد الطلبات', value: '1,890', change: '+8.3%' },
-    { label: 'متوسط قيمة الطلب', value: '173.5 ريال', change: '+4.2%' },
+    { label: 'إجمالي المبيعات', value: `${totalSales.toLocaleString()} ريال`, change: '+12.5%' },
+    { label: 'عدد الطلبات', value: totalOrders.toString(), change: '+8.3%' },
+    { label: 'متوسط قيمة الطلب', value: `${avgOrderValue.toFixed(2)} ريال`, change: '+4.2%' },
     { label: 'عدد العملاء', value: '940', change: '+6.1%' },
   ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <Loader className="animate-spin mx-auto mb-4" size={40} />
+          <p className="text-gray-400">جاري تحميل البيانات...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-900/20 border border-red-700/50 rounded-lg p-4">
+        <p className="text-red-400">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -181,6 +227,39 @@ const SalesReport = () => {
                   <td className="py-3 px-4">{item.sales.toLocaleString()} ريال</td>
                   <td className="py-3 px-4">{item.orders}</td>
                   <td className="py-3 px-4">{(item.sales / item.orders).toFixed(0)} ريال</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Raw Sales Orders Data */}
+      <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+        <h2 className="text-lg font-semibold mb-4">جميع طلبات المبيعات</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-700">
+                <th className="text-right py-3 px-4">رقم الطلب</th>
+                <th className="text-right py-3 px-4">المبلغ</th>
+                <th className="text-right py-3 px-4">الحالة</th>
+                <th className="text-right py-3 px-4">التاريخ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {salesData.map((order, idx) => (
+                <tr key={idx} className="border-b border-gray-700 hover:bg-gray-700/50 transition">
+                  <td className="py-3 px-4">{order.name}</td>
+                  <td className="py-3 px-4">{parseFloat(order.amount_total).toLocaleString()} ريال</td>
+                  <td className="py-3 px-4">
+                    <span className={`px-2 py-1 rounded text-xs ${
+                      order.state === 'sale' ? 'bg-green-900/30 text-green-400' : 'bg-yellow-900/30 text-yellow-400'
+                    }`}>
+                      {order.state === 'sale' ? 'مؤكد' : 'مسودة'}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4">{new Date(order.date_order).toLocaleDateString('ar-SA')}</td>
                 </tr>
               ))}
             </tbody>
