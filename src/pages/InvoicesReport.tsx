@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Download, Filter, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 
@@ -119,7 +119,7 @@ const InvoicesReport = () => {
                 fill="#8884d8"
                 dataKey="count"
               >
-                {paymentMethods.map((entry, index) => (
+                {paymentMethods.map((_, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>

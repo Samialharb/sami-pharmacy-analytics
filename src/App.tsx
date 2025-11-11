@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { TrendingUp, Users, Package, ShoppingCart, AlertCircle, DollarSign } from 'lucide-react';
+import { useState } from 'react';
+import { Users, Package, ShoppingCart, AlertCircle, DollarSign } from 'lucide-react';
 import SalesReport from './pages/SalesReport';
 import PurchaseReport from './pages/PurchaseReport';
 import InventoryReport from './pages/InventoryReport';

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ScatterChart, Scatter } from 'recharts';
-import { Download, Filter, AlertCircle, TrendingDown } from 'lucide-react';
+import { useState } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Download, Filter, AlertCircle } from 'lucide-react';
 
 const InventoryReport = () => {
   const [warehouse, setWarehouse] = useState('all');

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { useState } from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Download, Filter, AlertTriangle } from 'lucide-react';
 
 const PurchaseReport = () => {
@@ -116,7 +116,7 @@ const PurchaseReport = () => {
                 fill="#8884d8"
                 dataKey="value"
               >
-                {supplierDistribution.map((entry, index) => (
+                {supplierDistribution.map((_, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
