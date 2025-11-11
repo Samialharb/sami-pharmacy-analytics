@@ -31,6 +31,19 @@ jobs:
       - name: Build
         run: pnpm run build
       
+      - name: Build Tailwind CSS
+        run: npx tailwindcss -i ./src/index.css -o ./dist/assets/tailwind-output.css --minify
+      
+      - name: Replace CSS file
+        run: |
+          # Find the generated CSS file
+          CSS_FILE=$(find dist/assets -name 'index-*.css' | head -1)
+          if [ -n "$CSS_FILE" ]; then
+            # Replace it with the properly compiled Tailwind CSS
+            cp ./dist/assets/tailwind-output.css "$CSS_FILE"
+            rm ./dist/assets/tailwind-output.css
+          fi
+      
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
