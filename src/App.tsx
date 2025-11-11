@@ -8,7 +8,6 @@ import CustomersReport from './pages/CustomersReport';
 import InvoicesReport from './pages/InvoicesReport';
 import SuppliersReport from './pages/SuppliersReport';
 import ProductsReport from './pages/ProductsReport';
-import './App.css';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
