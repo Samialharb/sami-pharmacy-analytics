@@ -1,0 +1,107 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.production.local
+.env.production
+.env.staging
+.env.development
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+test-results/
+playwright-report/
+
+# OS
+Thumbs.db
+.AppleDouble
+.LSOverride
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Backups
+*.bak
+*.backup
+*~
+
+# Cache
+.cache/
+.eslintcache
+.prettierignore
+.turbo/
+
+# Secrets (never commit these!)
+.env.*.secret
+secrets.json
+credentials.json
+oauth-tokens.json
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# CI/CD
+.github/workflows/secrets.yml
+
+# Build cache
+.next/
+out/
+storybook-static/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# Misc
+.env.test.local
+.env.development.local
+.env.staging.local
+*.orig
+*.rej

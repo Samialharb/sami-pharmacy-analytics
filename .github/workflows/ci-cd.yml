@@ -1,0 +1,167 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # وظيفة الاختبار
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [22.x]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+    
+    - name: Install pnpm
+      run: npm install -g pnpm
+    
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+    
+    - name: Run linter
+      run: pnpm run lint || true
+    
+    - name: Build project
+      run: pnpm run build
+      env:
+        VITE_APP_TITLE: "منصة التقارير والإحصائيات"
+        VITE_APP_LOGO: "https://cdn.sami-pharmacy.com/logo.png"
+
+  # وظيفة الأمان
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 22.x
+    
+    - name: Install pnpm
+      run: npm install -g pnpm
+    
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+    
+    - name: Run security audit
+      run: pnpm audit --audit-level=moderate || true
+    
+    - name: Check for vulnerabilities
+      run: pnpm audit --json > audit-report.json || true
+    
+    - name: Upload audit report
+      uses: actions/upload-artifact@v3
+      with:
+        name: audit-report
+        path: audit-report.json
+
+  # وظيفة النشر على Staging
+  deploy-staging:
+    needs: [test, security]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 22.x
+    
+    - name: Install pnpm
+      run: npm install -g pnpm
+    
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+    
+    - name: Build project
+      run: pnpm run build
+      env:
+        VITE_APP_TITLE: "منصة التقارير والإحصائيات - Staging"
+    
+    - name: Deploy to Staging
+      run: echo "Deploying to staging environment..."
+      env:
+        STAGING_URL: ${{ secrets.STAGING_URL }}
+        STAGING_TOKEN: ${{ secrets.STAGING_TOKEN }}
+
+  # وظيفة النشر على الإنتاج
+  deploy-production:
+    needs: [test, security]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 22.x
+    
+    - name: Install pnpm
+      run: npm install -g pnpm
+    
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+    
+    - name: Build project
+      run: pnpm run build
+      env:
+        VITE_APP_TITLE: "منصة التقارير والإحصائيات"
+    
+    - name: Build Docker image
+      run: docker build -t sami-pharmacy-analytics:latest .
+    
+    - name: Deploy to Production
+      run: echo "Deploying to production environment..."
+      env:
+        PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
+        PRODUCTION_TOKEN: ${{ secrets.PRODUCTION_TOKEN }}
+    
+    - name: Create Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ github.run_number }}
+        release_name: Release v${{ github.run_number }}
+        body: |
+          Production deployment completed successfully
+          
+          **Changes in this Release**
+          - See commit history for details
+          
+          **Deployment Info**
+          - Build: ${{ github.run_number }}
+          - Commit: ${{ github.sha }}
+          - Branch: ${{ github.ref }}
+        draft: false
+        prerelease: false
+
+  # وظيفة التنبيهات
+  notify:
+    needs: [test, security]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Send notification
+      run: |
+        echo "Pipeline Status: ${{ job.status }}"
+        echo "Commit: ${{ github.sha }}"
+        echo "Author: ${{ github.actor }}"

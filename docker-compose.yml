@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  # قاعدة البيانات MySQL
+  mysql:
+    image: mysql:8.0
+    container_name: sami_pharmacy_db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: ${ODOO_DB:-sami_pharmacy}
+      MYSQL_USER: ${MYSQL_USER:-sami_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-sami_password}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - sami_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # تطبيق Node.js
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sami_pharmacy_app
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: mysql://${MYSQL_USER:-sami_user}:${MYSQL_PASSWORD:-sami_password}@mysql:3306/${ODOO_DB:-sami_pharmacy}
+      ODOO_URL: ${ODOO_URL:-http://odoo:8069}
+      ODOO_DB: ${ODOO_DB:-sami_pharmacy}
+      ODOO_USERNAME: ${ODOO_USERNAME:-admin}
+      ODOO_PASSWORD: ${ODOO_PASSWORD:-admin}
+      PORT: 3000
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret}
+      SESSION_SECRET: ${SESSION_SECRET:-your_session_secret}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM: ${SMTP_FROM:-noreply@sami-pharmacy.com}
+    ports:
+      - "3000:3000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+      - ./backups:/backups
+    networks:
+      - sami_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Nginx (اختياري - للـ reverse proxy)
+  nginx:
+    image: nginx:alpine
+    container_name: sami_pharmacy_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - app
+    networks:
+      - sami_network
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  sami_network:
+    driver: bridge
