@@ -179,3 +179,34 @@
 - [ ] حفظ Checkpoint نهائي
 - [ ] النشر على Vercel
 - [ ] التسليم النهائي للمستخدم
+
+
+---
+
+## 🔗 مهام جديدة - ربط Supabase بشكل صحيح (13 نوفمبر 2024)
+
+### Phase 1: إعداد Supabase Client وتحديث الكود
+- [x] التحقق من بيانات Supabase الموجودة (URL, API Key)
+- [x] إنشاء Supabase client في المشروع
+- [x] إضافة @supabase/supabase-js dependency (موجود بالفعل)
+- [x] إنشاء ملف lib/supabase.ts
+
+### Phase 2: تعديل الصفحات لاستخدام Supabase
+- [x] تعديل Dashboard.tsx لاستخدام Supabase
+- [ ] تعديل Sales.tsx لاستخدام Supabase
+- [x] تعديل Customers.tsx (تم بالفعل)
+- [ ] تعديل Products.tsx لاستخدام Supabase
+- [ ] تعديل Inventory.tsx لاستخدام Supabase
+- [ ] تعديل Home.tsx لإزالة tRPC
+
+### Phase 3: إضافة Environment Variables في Vercel
+- [ ] إضافة VITE_SUPABASE_URL في Vercel
+- [ ] إضافة VITE_SUPABASE_ANON_KEY في Vercel
+- [ ] التأكد من تطبيق المتغيرات على Production
+
+### Phase 4: اختبار ونشر الموقع النهائي
+- [ ] اختبار البناء محلياً
+- [ ] Push التغييرات إلى GitHub
+- [ ] التحقق من Deployment على Vercel
+- [ ] اختبار الموقع المباشر
+- [ ] التأكد من عمل جميع الصفحات

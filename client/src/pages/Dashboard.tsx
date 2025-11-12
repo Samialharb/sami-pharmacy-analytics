@@ -1,12 +1,51 @@
-import { trpc } from "@/lib/trpc";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, TrendingUp, TrendingDown, DollarSign, ShoppingCart, Users, Package, AlertTriangle, FileText } from "lucide-react";
 import Layout from "@/components/Layout";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { getSalesStats, getCustomersCount, getProductsCount, getTotalInventory } from "@/lib/supabase";
+
+interface Stats {
+  totalSales: number;
+  totalOrders: number;
+  averageOrderValue: number;
+  completedOrders: number;
+  draftOrders: number;
+  customersCount: number;
+  productsCount: number;
+  totalInventory: number;
+}
 
 export default function Dashboard() {
-  // جلب الإحصائيات
-  const { data: stats, isLoading } = trpc.sales.getStats.useQuery();
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        setIsLoading(true);
+        const [salesStats, customersCount, productsCount, totalInventory] = await Promise.all([
+          getSalesStats(),
+          getCustomersCount(),
+          getProductsCount(),
+          getTotalInventory(),
+        ]);
+
+        setStats({
+          ...salesStats,
+          customersCount,
+          productsCount,
+          totalInventory,
+        });
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchStats();
+  }, []);
 
   // بيانات مؤقتة للرسوم البيانية
   const monthlySalesData = [
@@ -67,7 +106,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-gray-900">
-                  {stats?.totalSales.toLocaleString('ar-SA') || '90,000'} ريال
+                  {stats?.totalSales.toLocaleString('ar-SA') || '0'} ريال
                 </div>
                 <div className="flex items-center gap-1 text-xs text-green-600 mt-2">
                   <TrendingUp className="h-3 w-3" />
@@ -88,7 +127,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-gray-900">
-                  {stats?.totalOrders.toLocaleString('ar-SA') || '27,920'}
+                  {stats?.totalOrders.toLocaleString('ar-SA') || '0'}
                 </div>
                 <div className="flex items-center gap-1 text-xs text-blue-600 mt-2">
                   <TrendingUp className="h-3 w-3" />
@@ -109,64 +148,111 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-gray-900">
-                  3,377
+                  {stats?.customersCount.toLocaleString('ar-SA') || '0'}
                 </div>
                 <div className="flex items-center gap-1 text-xs text-purple-600 mt-2">
                   <TrendingUp className="h-3 w-3" />
-                  <span>↑ 6.1% من الشهر الماضي</span>
+                  <span>↑ 5.2% من الشهر الماضي</span>
                 </div>
               </CardContent>
             </Card>
 
-            {/* المنتجات */}
+            {/* عدد المنتجات */}
             <Card className="border-l-4 border-l-orange-500 hover:shadow-lg transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-medium text-gray-600">
-                    المنتجات
+                    عدد المنتجات
                   </CardTitle>
                   <Package className="h-5 w-5 text-orange-500" />
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-gray-900">
-                  +500
+                  {stats?.productsCount.toLocaleString('ar-SA') || '0'}
                 </div>
                 <div className="flex items-center gap-1 text-xs text-orange-600 mt-2">
                   <TrendingUp className="h-3 w-3" />
-                  <span>↑ 15 منتج جديد</span>
+                  <span>↑ 3.1% من الشهر الماضي</span>
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
 
-        {/* الرسوم البيانية */}
+        {/* الإحصائيات التفصيلية */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* رسم بياني للمبيعات الشهرية */}
+          {/* متوسط قيمة الطلب */}
           <Card>
             <CardHeader>
-              <CardTitle>المبيعات الشهرية</CardTitle>
-              <CardDescription>إجمالي المبيعات خلال آخر 6 أشهر</CardDescription>
+              <CardTitle>متوسط قيمة الطلب</CardTitle>
+              <CardDescription>متوسط قيمة كل طلب مبيعات</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-4xl font-bold text-blue-600">
+                {stats?.averageOrderValue.toLocaleString('ar-SA', { maximumFractionDigits: 2 }) || '0'} ريال
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* حالة الطلبات */}
+          <Card>
+            <CardHeader>
+              <CardTitle>حالة الطلبات</CardTitle>
+              <CardDescription>توزيع الطلبات حسب الحالة</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">طلبات مكتملة</span>
+                  <span className="text-lg font-semibold text-green-600">
+                    {stats?.completedOrders.toLocaleString('ar-SA') || '0'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">طلبات مسودة</span>
+                  <span className="text-lg font-semibold text-yellow-600">
+                    {stats?.draftOrders.toLocaleString('ar-SA') || '0'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">إجمالي المخزون</span>
+                  <span className="text-lg font-semibold text-blue-600">
+                    {stats?.totalInventory.toLocaleString('ar-SA') || '0'} وحدة
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* الرسوم البيانية */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* اتجاه المبيعات الشهرية */}
+          <Card>
+            <CardHeader>
+              <CardTitle>اتجاه المبيعات الشهرية</CardTitle>
+              <CardDescription>المبيعات خلال الأشهر الستة الماضية</CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={monthlySalesData}>
+                <LineChart data={monthlySalesData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="sales" fill="#3B82F6" />
-                </BarChart>
+                  <Legend />
+                  <Line type="monotone" dataKey="sales" stroke="#3B82F6" strokeWidth={2} name="المبيعات" />
+                </LineChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
 
-          {/* رسم بياني دائري للفئات */}
+          {/* توزيع المنتجات حسب الفئة */}
           <Card>
             <CardHeader>
-              <CardTitle>توزيع المبيعات حسب الفئة</CardTitle>
-              <CardDescription>نسبة المبيعات لكل فئة منتج</CardDescription>
+              <CardTitle>توزيع المنتجات حسب الفئة</CardTitle>
+              <CardDescription>نسبة المبيعات حسب فئة المنتج</CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -176,7 +262,7 @@ export default function Dashboard() {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    label={(entry) => `${entry.name}: ${entry.value}%`}
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
@@ -192,181 +278,34 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* التقارير المتاحة */}
-        <div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">📊 التقارير المتاحة</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-blue-500">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ShoppingCart className="h-5 w-5 text-blue-600" />
-                  تقرير المبيعات الشامل
-                </CardTitle>
-                <CardDescription>
-                  عرض وتحليل جميع طلبات المبيعات مع إمكانية الفلترة والتصدير
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-green-500">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="h-5 w-5 text-green-600" />
-                  تقرير المنتجات
-                </CardTitle>
-                <CardDescription>
-                  تحليل أداء المنتجات وأكثرها مبيعاً
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-purple-500">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5 text-purple-600" />
-                  تقرير العملاء
-                </CardTitle>
-                <CardDescription>
-                  معلومات تفصيلية عن العملاء وسلوكهم الشرائي
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-orange-500">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-orange-600" />
-                  تقرير المخزون
-                </CardTitle>
-                <CardDescription>
-                  حالة المخزون الحالية والتنبيهات
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          </div>
-        </div>
-
-        {/* المميزات */}
-        <div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">🚀 المميزات</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="flex items-start gap-3 p-4 bg-white rounded-lg border hover:shadow-md transition-shadow">
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <TrendingUp className="h-4 w-4 text-blue-600" />
+        {/* ملخص سريع */}
+        <Card>
+          <CardHeader>
+            <CardTitle>ملخص سريع</CardTitle>
+            <CardDescription>نظرة عامة على أداء الصيدلية</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="text-center p-4 bg-blue-50 rounded-lg">
+                <FileText className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-blue-900">{stats?.totalOrders || 0}</div>
+                <div className="text-sm text-blue-600">إجمالي الطلبات</div>
               </div>
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-1">رسوم بيانية تفاعلية</h4>
-                <p className="text-sm text-gray-600">تصور البيانات بشكل واضح وسهل الفهم</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 p-4 bg-white rounded-lg border hover:shadow-md transition-shadow">
-              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Package className="h-4 w-4 text-green-600" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-1">جداول بيانات شاملة</h4>
-                <p className="text-sm text-gray-600">عرض تفصيلي لجميع البيانات</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 p-4 bg-white rounded-lg border hover:shadow-md transition-shadow">
-              <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <DollarSign className="h-4 w-4 text-purple-600" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-1">مؤشرات الأداء الرئيسية</h4>
-                <p className="text-sm text-gray-600">متابعة الأداء بشكل فوري</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 p-4 bg-white rounded-lg border hover:shadow-md transition-shadow">
-              <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <FileText className="h-4 w-4 text-orange-600" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-1">تصدير إلى PDF</h4>
-                <p className="text-sm text-gray-600">حفظ التقارير بصيغة PDF</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 p-4 bg-white rounded-lg border hover:shadow-md transition-shadow">
-              <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <TrendingDown className="h-4 w-4 text-red-600" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-1">تحديث فوري للبيانات</h4>
-                <p className="text-sm text-gray-600">مزامنة تلقائية مع نظام Odoo</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 p-4 bg-white rounded-lg border hover:shadow-md transition-shadow">
-              <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <AlertTriangle className="h-4 w-4 text-yellow-600" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-1">تنبيهات ذكية</h4>
-                <p className="text-sm text-gray-600">إشعارات للمخزون المنخفض والأحداث المهمة</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* إحصائيات إضافية */}
-        <div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">📈 إحصائيات إضافية</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="border-l-4 border-l-orange-500">
-              <CardHeader>
-                <CardTitle className="text-sm font-medium text-gray-600">
-                  تنبيهات المخزون
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-orange-600 mb-2">
-                  5 منتجات
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <DollarSign className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-green-900">
+                  {stats?.totalSales.toLocaleString('ar-SA') || '0'} ريال
                 </div>
-                <p className="text-sm text-gray-600">
-                  هناك 5 منتجات بكمية منخفضة تحتاج إلى إعادة طلب
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-green-500">
-              <CardHeader>
-                <CardTitle className="text-sm font-medium text-gray-600">
-                  متوسط المبيعات اليومية
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600 mb-2">
-                  3,000 ريال
-                </div>
-                <div className="flex items-center gap-1 text-sm text-green-600">
-                  <TrendingUp className="h-4 w-4" />
-                  <span>↑ 8.5% من أمس</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-blue-500">
-              <CardHeader>
-                <CardTitle className="text-sm font-medium text-gray-600">
-                  متوسط قيمة الطلب
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-blue-600 mb-2">
-                  {stats?.averageOrderValue.toFixed(2) || '173.5'} ريال
-                </div>
-                <div className="flex items-center gap-1 text-sm text-blue-600">
-                  <TrendingUp className="h-4 w-4" />
-                  <span>↑ 4.2% من الأسبوع الماضي</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+                <div className="text-sm text-green-600">إجمالي الإيرادات</div>
+              </div>
+              <div className="text-center p-4 bg-purple-50 rounded-lg">
+                <Users className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-purple-900">{stats?.customersCount || 0}</div>
+                <div className="text-sm text-purple-600">إجمالي العملاء</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   );
