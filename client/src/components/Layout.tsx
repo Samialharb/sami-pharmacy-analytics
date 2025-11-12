@@ -63,11 +63,11 @@ export default function Layout({ children }: LayoutProps) {
               const isActive = location === item.href;
               
               return (
-                <Link key={item.name} href={item.href}>
+                <Link key={item.name} to={item.href}>
                   <a
                     className={`
                       flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium whitespace-nowrap
-                      transition-colors border-b-2
+                      transition-colors border-b-2 cursor-pointer
                       ${isActive
                         ? 'bg-blue-50 text-blue-700 border-blue-600'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 border-transparent'
