@@ -7,8 +7,9 @@ import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_CONFIG } from '@shared/supabase';
 
 // استخدام Environment Variables إذا كانت موجودة، وإلا استخدام القيم الافتراضية
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || SUPABASE_CONFIG.url;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || SUPABASE_CONFIG.anonKey;
+// يدعم كلاً من VITE_ prefix (للتطوير المحلي) وبدون prefix (لـ Vercel)
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL || SUPABASE_CONFIG.url;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY || SUPABASE_CONFIG.anonKey;
 
 // إنشاء Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
