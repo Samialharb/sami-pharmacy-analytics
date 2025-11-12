@@ -10,7 +10,8 @@ export default function Sales() {
   const [selectedPeriod, setSelectedPeriod] = useState<'all' | 'daily' | 'monthly' | 'yearly'>('all');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  // استخدام 2025 كسنة افتراضية لأن البيانات في Supabase من 2025
+  const [selectedYear, setSelectedYear] = useState(2025);
   
   const [allOrders, setAllOrders] = useState<SalesOrder[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<SalesOrder[]>([]);

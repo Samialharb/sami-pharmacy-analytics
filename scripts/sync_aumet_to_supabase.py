@@ -74,51 +74,91 @@ def connect_supabase():
 # ==================== مزامنة طلبات المبيعات ====================
 
 def sync_sales_orders(models, uid, supabase):
-    """مزامنة طلبات المبيعات من Odoo إلى Supabase"""
+    """مزامنة طلبات المبيعات من Odoo إلى Supabase (من pos.order)"""
     try:
-        logger.info("📦 بدء مزامنة طلبات المبيعات...")
+        logger.info("📦 بدء مزامنة طلبات المبيعات (pos.order)...")
         
-        # جلب طلبات المبيعات من Odoo
-        order_ids = models.execute_kw(
+        # أولاً: معرفة العدد الكلي للطلبات
+        total_count = models.execute_kw(
             ODOO_DB, uid, ODOO_PASSWORD,
-            'sale.order', 'search',
-            [[]], 
-            {'limit': 10000}  # جلب 10,000 طلب
+            'pos.order', 'search_count',
+            [[]]
         )
         
-        logger.info(f"📊 تم العثور على {len(order_ids)} طلب مبيعات")
+        logger.info(f"📊 العدد الكلي للطلبات في Odoo: {total_count}")
         
-        if not order_ids:
+        if total_count == 0:
             logger.warning("⚠️ لا توجد طلبات مبيعات")
             return
         
-        # جلب تفاصيل الطلبات
-        orders = models.execute_kw(
-            ODOO_DB, uid, ODOO_PASSWORD,
-            'sale.order', 'read',
-            [order_ids],
-            {'fields': ['name', 'partner_id', 'date_order', 'amount_total', 'state', 'user_id']}
-        )
+        # جلب جميع الطلبات باستخدام pagination
+        all_order_ids = []
+        batch_size = 1000  # جلب 1000 طلب في كل دفعة
+        offset = 0
+        
+        while offset < total_count:
+            logger.info(f"🔄 جلب الطلبات من {offset} إلى {offset + batch_size}...")
+            
+            batch_ids = models.execute_kw(
+                ODOO_DB, uid, ODOO_PASSWORD,
+                'pos.order', 'search',
+                [[]], 
+                {'limit': batch_size, 'offset': offset}
+            )
+            
+            if not batch_ids:
+                break
+            
+            all_order_ids.extend(batch_ids)
+            offset += batch_size
+            
+            logger.info(f"✅ تم جلب {len(batch_ids)} طلب (الإجمالي: {len(all_order_ids)}/{total_count})")
+        
+        logger.info(f"📊 تم جلب {len(all_order_ids)} طلب مبيعات بنجاح")
+        
+        # جلب تفاصيل الطلبات (على دفعات أيضاً لتجنب timeout)
+        all_orders = []
+        read_batch_size = 500  # قراءة 500 طلب في كل مرة
+        
+        for i in range(0, len(all_order_ids), read_batch_size):
+            batch_ids = all_order_ids[i:i+read_batch_size]
+            logger.info(f"📖 قراءة تفاصيل الطلبات {i+1} إلى {i+len(batch_ids)}...")
+            
+            orders = models.execute_kw(
+                ODOO_DB, uid, ODOO_PASSWORD,
+                'pos.order', 'read',
+                [batch_ids],
+                {'fields': ['name', 'partner_id', 'date_order', 'amount_total', 'state']}
+            )
+            
+            all_orders.extend(orders)
+            logger.info(f"✅ تم قراءة {len(orders)} طلب (الإجمالي: {len(all_orders)}/{len(all_order_ids)})")
+        
+        orders = all_orders
         
         # تحويل البيانات للصيغة المناسبة لـ Supabase
         sales_data = []
+        skipped_count = 0
         for order in orders:
+            # تجاهل الطلبات بمبالغ سالبة (المرتجعات) مؤقتاً
+            if order.get('amount_total', 0) < 0:
+                skipped_count += 1
+                continue
+            
             sales_data.append({
-                'order_id': order['id'],
-                'order_name': order['name'],
-                'customer_id': order['partner_id'][0] if order.get('partner_id') else None,
-                'customer_name': order['partner_id'][1] if order.get('partner_id') else 'غير معروف',
-                'order_date': order['date_order'],
+                'aumet_id': order['id'],
+                'name': order['name'],
+                'partner_id': order['partner_id'][0] if order.get('partner_id') else None,
                 'amount_total': float(order['amount_total']),
-                'state': order['state'],
-                'salesperson_id': order['user_id'][0] if order.get('user_id') else None,
-                'salesperson_name': order['user_id'][1] if order.get('user_id') else None,
-                'synced_at': datetime.now().isoformat()
+                'state': order['state']
             })
+        
+        if skipped_count > 0:
+            logger.warning(f"⚠️ تم تجاهل {skipped_count} طلب بمبالغ سالبة (مرتجعات)")
         
         # حذف البيانات القديمة وإدراج الجديدة
         logger.info("🗑️ حذف البيانات القديمة...")
-        supabase.table('aumet_sales_orders').delete().neq('order_id', 0).execute()
+        supabase.table('aumet_sales_orders').delete().neq('aumet_id', 0).execute()
         
         # إدراج البيانات الجديدة (على دفعات)
         batch_size = 1000
@@ -166,19 +206,15 @@ def sync_customers(models, uid, supabase):
         customers_data = []
         for customer in customers:
             customers_data.append({
-                'customer_id': customer['id'],
-                'customer_name': customer['name'],
+                'aumet_id': customer['id'],
+                'name': customer['name'],
                 'email': customer.get('email'),
-                'phone': customer.get('phone') or customer.get('mobile'),
-                'city': customer.get('city'),
-                'country': customer['country_id'][1] if customer.get('country_id') else None,
-                'customer_rank': customer.get('customer_rank', 0),
-                'synced_at': datetime.now().isoformat()
+                'phone': customer.get('phone') or customer.get('mobile')
             })
         
         # حذف البيانات القديمة وإدراج الجديدة
         logger.info("🗑️ حذف البيانات القديمة...")
-        supabase.table('aumet_customers').delete().neq('customer_id', 0).execute()
+        supabase.table('aumet_customers').delete().neq('aumet_id', 0).execute()
         
         # إدراج البيانات الجديدة
         batch_size = 1000
@@ -226,19 +262,15 @@ def sync_products(models, uid, supabase):
         products_data = []
         for product in products:
             products_data.append({
-                'product_id': product['id'],
-                'product_name': product['name'],
-                'product_code': product.get('default_code'),
-                'sale_price': float(product.get('list_price', 0)),
-                'cost_price': float(product.get('standard_price', 0)),
-                'category': product['categ_id'][1] if product.get('categ_id') else 'غير مصنف',
-                'qty_available': float(product.get('qty_available', 0)),
-                'synced_at': datetime.now().isoformat()
+                'aumet_id': product['id'],
+                'name': product['name'],
+                'default_code': product.get('default_code'),
+                'list_price': float(product.get('list_price', 0))
             })
         
         # حذف البيانات القديمة وإدراج الجديدة
         logger.info("🗑️ حذف البيانات القديمة...")
-        supabase.table('aumet_products').delete().neq('product_id', 0).execute()
+        supabase.table('aumet_products').delete().neq('aumet_id', 0).execute()
         
         # إدراج البيانات الجديدة
         batch_size = 1000

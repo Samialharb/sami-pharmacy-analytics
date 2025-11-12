@@ -9,6 +9,7 @@ import Sales from "./pages/Sales";
 import Products from "./pages/Products";
 import Customers from "./pages/Customers";
 import Inventory from "./pages/Inventory";
+import Suppliers from "./pages/Suppliers";
 import ComingSoon from "./pages/ComingSoon";
 import { ShoppingBag, Truck, FileText, Calculator } from "lucide-react";
 
@@ -27,13 +28,7 @@ function Router() {
           icon={<ShoppingBag className="h-8 w-8 text-blue-600" />}
         />
       </Route>
-      <Route path="/suppliers">
-        <ComingSoon 
-          title="الموردين" 
-          description="قائمة الموردين وتقييم أدائهم"
-          icon={<Truck className="h-8 w-8 text-blue-600" />}
-        />
-      </Route>
+      <Route path="/suppliers" component={Suppliers} />
       <Route path="/invoices">
         <ComingSoon 
           title="الفواتير" 

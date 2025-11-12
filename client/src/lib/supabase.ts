@@ -69,7 +69,8 @@ export async function getSalesStats(): Promise<SalesStats> {
   try {
     const { data: orders, error } = await supabase
       .from('aumet_sales_orders')
-      .select('amount_total, is_completed, is_draft');
+      .select('amount_total, is_completed, is_draft')
+      .range(0, 29999);
 
     if (error) throw error;
 
@@ -103,15 +104,44 @@ export async function getSalesStats(): Promise<SalesStats> {
  */
 export async function getAllSalesOrders(): Promise<SalesOrder[]> {
   try {
-    const { data, error } = await supabase
-      .from('aumet_sales_orders')
-      .select('*')
-      .order('date_order', { ascending: false });
+    let allOrders: SalesOrder[] = [];
+    let from = 0;
+    const pageSize = 1000;
+    let hasMore = true;
+    let pageCount = 0;
 
-    if (error) throw error;
-    return data || [];
+    console.log('🔄 Starting to fetch sales orders...');
+
+    while (hasMore && pageCount < 30) { // حد أقصى 30 صفحة (30,000 سجل)
+      console.log(`📥 Fetching page ${pageCount + 1}, from ${from} to ${from + pageSize - 1}`);
+      
+      const { data, error } = await supabase
+        .from('aumet_sales_orders')
+        .select('*')
+        .order('date_order', { ascending: false })
+        .range(from, from + pageSize - 1);
+
+      if (error) {
+        console.error('❌ Error fetching page:', error);
+        throw error;
+      }
+      
+      if (data && data.length > 0) {
+        console.log(`✅ Fetched ${data.length} orders, total so far: ${allOrders.length + data.length}`);
+        allOrders = [...allOrders, ...data];
+        from += pageSize;
+        hasMore = data.length === pageSize;
+        pageCount++;
+      } else {
+        console.log('🏁 No more data to fetch');
+        hasMore = false;
+      }
+    }
+
+    console.log(`🎉 Finished! Total orders fetched: ${allOrders.length}`);
+    return allOrders;
   } catch (error) {
-    console.error('Error fetching sales orders:', error);
+    console.error('❌ Error fetching sales orders:', error);
     return [];
   }
 }
@@ -124,7 +154,8 @@ export async function getAllCustomers(): Promise<Customer[]> {
     const { data, error } = await supabase
       .from('aumet_customers')
       .select('*')
-      .order('name', { ascending: true });
+      .order('name', { ascending: true })
+      .range(0, 29999);
 
     if (error) throw error;
     return data || [];
@@ -142,7 +173,8 @@ export async function getAllProducts(): Promise<Product[]> {
     const { data, error } = await supabase
       .from('aumet_products')
       .select('*')
-      .order('name', { ascending: true });
+      .order('name', { ascending: true })
+      .range(0, 29999);
 
     if (error) throw error;
     return data || [];
@@ -193,12 +225,61 @@ export async function getTotalInventory(): Promise<number> {
   try {
     const { data, error } = await supabase
       .from('aumet_products')
-      .select('qty_available');
+      .select('qty_available')
+      .range(0, 29999);
 
     if (error) throw error;
     return data?.reduce((sum, product) => sum + (product.qty_available || 0), 0) || 0;
   } catch (error) {
     console.error('Error fetching total inventory:', error);
+    return 0;
+  }
+}
+
+/**
+ * Supplier interface
+ */
+export interface Supplier {
+  id: string;
+  name: string;
+  contact_person: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  created_at: string;
+}
+
+/**
+ * Get all suppliers
+ */
+export async function getAllSuppliers(): Promise<Supplier[]> {
+  try {
+    const { data, error } = await supabase
+      .from('suppliers')
+      .select('*')
+      .order('name', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching suppliers:', error);
+    return [];
+  }
+}
+
+/**
+ * Get suppliers count
+ */
+export async function getSuppliersCount(): Promise<number> {
+  try {
+    const { count, error } = await supabase
+      .from('suppliers')
+      .select('*', { count: 'exact', head: true });
+
+    if (error) throw error;
+    return count || 0;
+  } catch (error) {
+    console.error('Error fetching suppliers count:', error);
     return 0;
   }
 }
