@@ -193,7 +193,7 @@
 
 ### Phase 2: تعديل الصفحات لاستخدام Supabase
 - [x] تعديل Dashboard.tsx لاستخدام Supabase
-- [ ] تعديل Sales.tsx لاستخدام Supabase
+- [x] تعديل Sales.tsx لاستخدام Supabase
 - [x] تعديل Customers.tsx (تم بالفعل)
 - [ ] تعديل Products.tsx لاستخدام Supabase
 - [ ] تعديل Inventory.tsx لاستخدام Supabase
