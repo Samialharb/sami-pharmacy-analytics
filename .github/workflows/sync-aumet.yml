@@ -1,0 +1,57 @@
+name: Sync Aumet ERP to Supabase
+
+on:
+  # تشغيل تلقائي كل 6 ساعات
+  schedule:
+    - cron: '0 */6 * * *'  # كل 6 ساعات
+  
+  # تشغيل يدوي من واجهة GitHub
+  workflow_dispatch:
+  
+  # تشغيل عند Push (للاختبار)
+  push:
+    branches:
+      - main
+    paths:
+      - 'scripts/sync_aumet_to_supabase.py'
+      - '.github/workflows/sync-aumet.yml'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
+      
+      - name: Run sync script
+        env:
+          ODOO_URL: ${{ secrets.ODOO_URL }}
+          ODOO_DB: ${{ secrets.ODOO_DB }}
+          ODOO_USERNAME: ${{ secrets.ODOO_USERNAME }}
+          ODOO_PASSWORD: ${{ secrets.ODOO_PASSWORD }}
+          ODOO_UID: ${{ secrets.ODOO_UID }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          python scripts/sync_aumet_to_supabase.py
+      
+      - name: Notify on success
+        if: success()
+        run: |
+          echo "✅ Sync completed successfully at $(date)"
+      
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Sync failed at $(date)"
