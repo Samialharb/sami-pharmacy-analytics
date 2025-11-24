@@ -1,64 +1,93 @@
-import { trpc } from "@/lib/trpc";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, FileDown, FileSpreadsheet } from "lucide-react";
-import { useState } from "react";
 import { exportToExcel, exportToPDF } from "@/lib/exportUtils";
+import Layout from "@/components/Layout";
+import { getAllSalesOrders, getSalesStats, type SalesOrder } from "@/lib/supabase";
 
-export default function Home() {
-  const [selectedPeriod, setSelectedPeriod] = useState<'daily' | 'monthly' | 'yearly'>('monthly');
+export default function Sales() {
+  const [selectedPeriod, setSelectedPeriod] = useState<'all' | 'daily' | 'monthly' | 'yearly'>('all');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  // استخدام 2025 كسنة افتراضية لأن البيانات في Supabase من 2025
+  const [selectedYear, setSelectedYear] = useState(2025);
+  
+  const [allOrders, setAllOrders] = useState<SalesOrder[]>([]);
+  const [filteredOrders, setFilteredOrders] = useState<SalesOrder[]>([]);
+  const [stats, setStats] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // جلب البيانات حسب الفترة المختارة
-  const { data: dailySales, isLoading: isDailyLoading } = trpc.sales.getDaily.useQuery(
-    { date: selectedDate },
-    { enabled: selectedPeriod === 'daily' }
-  );
+  // جلب البيانات من Supabase
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setIsLoading(true);
+        const [orders, salesStats] = await Promise.all([
+          getAllSalesOrders(),
+          getSalesStats(),
+        ]);
+        setAllOrders(orders);
+        setFilteredOrders(orders);
+        setStats(salesStats);
+      } catch (error) {
+        console.error('Error fetching sales data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
 
-  const { data: monthlySales, isLoading: isMonthlyLoading } = trpc.sales.getMonthly.useQuery(
-    { year: selectedYear, month: selectedMonth },
-    { enabled: selectedPeriod === 'monthly' }
-  );
+    fetchData();
+  }, []);
 
-  const { data: yearlySales, isLoading: isYearlyLoading } = trpc.sales.getYearly.useQuery(
-    { year: selectedYear },
-    { enabled: selectedPeriod === 'yearly' }
-  );
+  // تطبيق الفلترة حسب الفترة
+  useEffect(() => {
+    if (!allOrders.length) return;
 
-  // جلب الإحصائيات
-  const { data: stats, isLoading: isStatsLoading } = trpc.sales.getStats.useQuery();
+    let filtered = [...allOrders];
 
-  const currentData = selectedPeriod === 'daily' 
-    ? dailySales 
-    : selectedPeriod === 'monthly' 
-    ? monthlySales 
-    : yearlySales;
+    if (selectedPeriod === 'daily') {
+      filtered = filtered.filter(order => {
+        const orderDate = new Date(order.date_order).toISOString().split('T')[0];
+        return orderDate === selectedDate;
+      });
+    } else if (selectedPeriod === 'monthly') {
+      filtered = filtered.filter(order => {
+        const orderDate = new Date(order.date_order);
+        return orderDate.getMonth() + 1 === selectedMonth && orderDate.getFullYear() === selectedYear;
+      });
+    } else if (selectedPeriod === 'yearly') {
+      filtered = filtered.filter(order => {
+        const orderDate = new Date(order.date_order);
+        return orderDate.getFullYear() === selectedYear;
+      });
+    }
 
-  const isLoading = isDailyLoading || isMonthlyLoading || isYearlyLoading || isStatsLoading;
+    setFilteredOrders(filtered);
+  }, [selectedPeriod, selectedDate, selectedMonth, selectedYear, allOrders]);
 
-  // حساب الإحصائيات للفترة الحالية
-  const currentTotal = currentData?.reduce((sum, order) => sum + order.amount_total, 0) || 0;
-  const currentCount = currentData?.length || 0;
+  // حساب الإحصائيات للفترة المختارة
+  const currentTotal = filteredOrders.reduce((sum, order) => sum + order.amount_total, 0);
+  const currentCount = filteredOrders.length;
+  const currentAverage = currentCount > 0 ? currentTotal / currentCount : 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8" dir="rtl">
-      <div className="max-w-7xl mx-auto">
+    <Layout>
+      <div className="space-y-8">
         {/* العنوان */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            صيدلية سامي - تقارير المبيعات
-          </h1>
+        <div>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">
+            تقارير المبيعات
+          </h2>
           <p className="text-gray-600">
-            عرض وتحليل بيانات المبيعات من نظام أوميت
+            عرض وتحليل بيانات المبيعات من نظام Odoo ERP
           </p>
         </div>
 
         {/* الإحصائيات الإجمالية */}
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <Card>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <Card className="border-l-4 border-l-green-500">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-gray-600">
                   إجمالي المبيعات
@@ -66,12 +95,12 @@ export default function Home() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-green-600">
-                  {stats.totalSales.toLocaleString('ar-SA')} ر.س
+                  {stats.totalSales.toLocaleString('ar-SA')} ريال
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-l-4 border-l-blue-500">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-gray-600">
                   عدد الطلبات
@@ -84,7 +113,7 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-l-4 border-l-purple-500">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-gray-600">
                   متوسط قيمة الطلب
@@ -92,12 +121,12 @@ export default function Home() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-purple-600">
-                  {stats.averageOrderValue.toFixed(2)} ر.س
+                  {stats.averageOrderValue.toLocaleString('ar-SA', { maximumFractionDigits: 2 })} ريال
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-l-4 border-l-orange-500">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-gray-600">
                   الطلبات المكتملة
@@ -113,13 +142,19 @@ export default function Home() {
         )}
 
         {/* فلاتر الفترة */}
-        <Card className="mb-8">
+        <Card>
           <CardHeader>
             <CardTitle>اختر الفترة</CardTitle>
             <CardDescription>حدد الفترة الزمنية لعرض التقرير</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-4 mb-6">
+            <div className="flex gap-4 mb-6 flex-wrap">
+              <Button
+                variant={selectedPeriod === 'all' ? 'default' : 'outline'}
+                onClick={() => setSelectedPeriod('all')}
+              >
+                الكل
+              </Button>
               <Button
                 variant={selectedPeriod === 'daily' ? 'default' : 'outline'}
                 onClick={() => setSelectedPeriod('daily')}
@@ -141,7 +176,7 @@ export default function Home() {
             </div>
 
             {/* فلاتر التاريخ */}
-            <div className="flex gap-4">
+            <div className="flex gap-4 flex-wrap">
               {selectedPeriod === 'daily' && (
                 <div>
                   <label className="block text-sm font-medium mb-2">التاريخ</label>
@@ -204,14 +239,14 @@ export default function Home() {
         </Card>
 
         {/* إحصائيات الفترة المختارة */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card>
             <CardHeader>
               <CardTitle>إجمالي المبيعات للفترة</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-4xl font-bold text-green-600">
-                {currentTotal.toLocaleString('ar-SA')} ر.س
+                {currentTotal.toLocaleString('ar-SA')} ريال
               </div>
             </CardContent>
           </Card>
@@ -226,15 +261,26 @@ export default function Home() {
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>متوسط قيمة الطلب</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-4xl font-bold text-purple-600">
+                {currentAverage.toLocaleString('ar-SA', { maximumFractionDigits: 2 })} ريال
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* أزرار التصدير */}
-        {currentData && currentData.length > 0 && (
-          <div className="flex gap-4 mb-6">
+        {filteredOrders.length > 0 && (
+          <div className="flex gap-4">
             <Button
               onClick={() => {
                 const filename = `sales_report_${selectedPeriod}_${selectedPeriod === 'daily' ? selectedDate : selectedPeriod === 'monthly' ? `${selectedYear}_${selectedMonth}` : selectedYear}`;
-                exportToExcel(currentData, filename);
+                exportToExcel(filteredOrders, filename);
               }}
               variant="outline"
               className="gap-2"
@@ -244,19 +290,21 @@ export default function Home() {
             </Button>
             <Button
               onClick={() => {
-                const title = selectedPeriod === 'daily' 
+                const title = selectedPeriod === 'all'
+                  ? 'تقرير المبيعات - جميع الفترات'
+                  : selectedPeriod === 'daily' 
                   ? `تقرير المبيعات اليومي - ${selectedDate}`
                   : selectedPeriod === 'monthly'
                   ? `تقرير المبيعات الشهري - ${new Date(selectedYear, selectedMonth - 1).toLocaleDateString('ar-SA', { month: 'long', year: 'numeric' })}`
                   : `تقرير المبيعات السنوي - ${selectedYear}`;
                 
-                const statsData = stats ? {
+                const statsData = {
                   totalSales: currentTotal,
                   totalOrders: currentCount,
-                  averageOrderValue: currentCount > 0 ? currentTotal / currentCount : 0
-                } : undefined;
+                  averageOrderValue: currentAverage
+                };
                 
-                exportToPDF(currentData, title, statsData);
+                exportToPDF(filteredOrders, title, statsData);
               }}
               variant="outline"
               className="gap-2"
@@ -272,6 +320,7 @@ export default function Home() {
           <CardHeader>
             <CardTitle>تفاصيل الطلبات</CardTitle>
             <CardDescription>
+              {selectedPeriod === 'all' && 'جميع الطلبات'}
               {selectedPeriod === 'daily' && `طلبات يوم ${selectedDate}`}
               {selectedPeriod === 'monthly' && `طلبات شهر ${new Date(selectedYear, selectedMonth - 1).toLocaleDateString('ar-SA', { month: 'long', year: 'numeric' })}`}
               {selectedPeriod === 'yearly' && `طلبات سنة ${selectedYear}`}
@@ -282,7 +331,7 @@ export default function Home() {
               <div className="flex justify-center items-center py-12">
                 <Loader2 className="animate-spin h-8 w-8 text-gray-400" />
               </div>
-            ) : currentData && currentData.length > 0 ? (
+            ) : filteredOrders.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-100">
@@ -294,14 +343,14 @@ export default function Home() {
                     </tr>
                   </thead>
                   <tbody>
-                    {currentData.map((order) => (
+                    {filteredOrders.map((order) => (
                       <tr key={order.id} className="border-b hover:bg-gray-50">
                         <td className="px-4 py-3">{order.name}</td>
                         <td className="px-4 py-3">
                           {new Date(order.date_order).toLocaleDateString('ar-SA')}
                         </td>
                         <td className="px-4 py-3 font-semibold text-green-600">
-                          {order.amount_total.toLocaleString('ar-SA')} ر.س
+                          {order.amount_total.toLocaleString('ar-SA')} ريال
                         </td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-1 rounded-full text-xs ${
@@ -327,6 +376,6 @@ export default function Home() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </Layout>
   );
 }

@@ -1,0 +1,61 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install pnpm
+        run: npm install -g pnpm
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      
+      - name: Install dependencies
+        run: pnpm install
+      
+      - name: Build
+        run: pnpm run build
+      
+      - name: Build Tailwind CSS
+        run: npx tailwindcss -i ./src/index.css -o ./dist/assets/tailwind-output.css --minify
+      
+      - name: Replace CSS file with new hash
+        run: |
+          # Find the generated CSS file
+          OLD_CSS=$(find dist/assets -name 'index-*.css' | head -1)
+          if [ -n "$OLD_CSS" ]; then
+            # Generate new hash based on timestamp
+            NEW_HASH=$(echo $GITHUB_SHA | cut -c1-8)
+            NEW_CSS="dist/assets/index-${NEW_HASH}.css"
+            # Copy properly compiled Tailwind CSS with new name
+            cp ./dist/assets/tailwind-output.css "$NEW_CSS"
+            # Update index.html to reference new CSS file
+            OLD_CSS_NAME=$(basename "$OLD_CSS")
+            NEW_CSS_NAME=$(basename "$NEW_CSS")
+            sed -i "s|$OLD_CSS_NAME|$NEW_CSS_NAME|g" dist/index.html
+            # Remove old files
+            rm "$OLD_CSS"
+            rm ./dist/assets/tailwind-output.css
+          fi
+      
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          cname: false

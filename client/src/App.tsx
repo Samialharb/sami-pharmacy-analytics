@@ -4,32 +4,55 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import Home from "./pages/Home";
+import Dashboard from "./pages/Dashboard";
+import Sales from "./pages/Sales";
+import Products from "./pages/Products";
+import Customers from "./pages/Customers";
+import Inventory from "./pages/Inventory";
+import Suppliers from "./pages/Suppliers";
+import ComingSoon from "./pages/ComingSoon";
+import { ShoppingBag, Truck, FileText, Calculator } from "lucide-react";
 
 function Router() {
-  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
+      <Route path="/" component={Dashboard} />
+      <Route path="/sales" component={Sales} />
+      <Route path="/products" component={Products} />
+      <Route path="/customers" component={Customers} />
+      <Route path="/inventory" component={Inventory} />
+      <Route path="/purchases">
+        <ComingSoon 
+          title="المشتريات" 
+          description="إدارة ومتابعة طلبات الشراء والموردين"
+          icon={<ShoppingBag className="h-8 w-8 text-blue-600" />}
+        />
+      </Route>
+      <Route path="/suppliers" component={Suppliers} />
+      <Route path="/invoices">
+        <ComingSoon 
+          title="الفواتير" 
+          description="إدارة الفواتير والمدفوعات"
+          icon={<FileText className="h-8 w-8 text-blue-600" />}
+        />
+      </Route>
+      <Route path="/accounting">
+        <ComingSoon 
+          title="المحاسبة" 
+          description="التقارير المالية والمحاسبية"
+          icon={<Calculator className="h-8 w-8 text-blue-600" />}
+        />
+      </Route>
+      <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
   );
 }
 
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
-
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="light"
-        // switchable
-      >
+      <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster />
           <Router />
