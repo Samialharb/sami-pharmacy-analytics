@@ -130,10 +130,7 @@ export async function getAllSalesOrders(): Promise<SalesOrder[]> {
     let hasMore = true;
     let pageCount = 0;
 
-    console.log('🔄 Starting to fetch sales orders from pos_order...');
-
     while (hasMore) { // جلب جميع البيانات بدون حد
-      console.log(`📥 Fetching page ${pageCount + 1}, from ${from} to ${from + pageSize - 1}`);
       
       const { data, error } = await supabase
         .from('pos_order')
@@ -141,13 +138,9 @@ export async function getAllSalesOrders(): Promise<SalesOrder[]> {
         .order('date_order', { ascending: false })
         .range(from, from + pageSize - 1);
 
-      if (error) {
-        console.error('❌ Error fetching page:', error);
-        throw error;
-      }
+      if (error) throw error;
       
       if (data && data.length > 0) {
-        console.log(`✅ Fetched ${data.length} orders, total so far: ${allOrders.length + data.length}`);
         // تحويل البيانات للواجهة المتوقعة
         const mappedData = data.map(order => ({
           id: order.id?.toString() || '',
@@ -167,12 +160,10 @@ export async function getAllSalesOrders(): Promise<SalesOrder[]> {
         hasMore = data.length === pageSize;
         pageCount++;
       } else {
-        console.log('🏁 No more data to fetch');
         hasMore = false;
       }
     }
 
-    console.log(`🎉 Finished! Total orders fetched: ${allOrders.length}`);
     return allOrders;
   } catch (error) {
     console.error('❌ Error fetching sales orders:', error);
