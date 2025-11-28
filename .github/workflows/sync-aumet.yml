@@ -7,6 +7,14 @@ on:
   
   # تشغيل يدوي من واجهة GitHub
   workflow_dispatch:
+  
+  # تشغيل عند push (للاختبار)
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/sync-aumet.yml'
+      - 'scripts/requirements.txt'
 
 jobs:
   sync:
