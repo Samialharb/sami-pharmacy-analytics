@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Loader2, TrendingUp, TrendingDown, DollarSign, ShoppingCart, Users, Package, AlertTriangle, FileText } from "lucide-react";
 import Layout from "@/components/Layout";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { getSalesStats, getCustomersCount, getProductsCount, getTotalInventory } from "@/lib/supabase";
+import { getDashboardStats, getSalesByMonth, getProductsByCategory } from "@/lib/supabase";
 
 interface Stats {
   totalSales: number;
@@ -17,26 +17,41 @@ interface Stats {
 }
 
 export default function Dashboard() {
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [stats, setStats] = useState<any>(null);
+  const [monthlySalesData, setMonthlySalesData] = useState<any[]>([]);
+  const [categoryData, setCategoryData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchStats() {
       try {
         setIsLoading(true);
-        const [salesStats, customersCount, productsCount, totalInventory] = await Promise.all([
-          getSalesStats(),
-          getCustomersCount(),
-          getProductsCount(),
-          getTotalInventory(),
+        const [dashboardStats, salesByMonth, productsByCategory] = await Promise.all([
+          getDashboardStats(),
+          getSalesByMonth(),
+          getProductsByCategory(),
         ]);
 
-        setStats({
-          ...salesStats,
-          customersCount,
-          productsCount,
-          totalInventory,
-        });
+        setStats(dashboardStats);
+        
+        // تحويل بيانات المبيعات الشهرية
+        if (salesByMonth && salesByMonth.length > 0) {
+          const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+          const formattedSales = salesByMonth.map((item: any) => ({
+            month: monthNames[parseInt(item.month.split('-')[1]) - 1] || item.month,
+            sales: Number(item.total_sales) || 0,
+          }));
+          setMonthlySalesData(formattedSales);
+        }
+        
+        // تحويل بيانات المنتجات حسب الفئة
+        if (productsByCategory && productsByCategory.length > 0) {
+          const formattedCategories = productsByCategory.map((item: any) => ({
+            name: item.category_name || 'غير مصنف',
+            value: Number(item.product_count) || 0,
+          }));
+          setCategoryData(formattedCategories);
+        }
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
       } finally {
@@ -46,24 +61,6 @@ export default function Dashboard() {
 
     fetchStats();
   }, []);
-
-  // بيانات مؤقتة للرسوم البيانية
-  const monthlySalesData = [
-    { month: 'يناير', sales: 12000 },
-    { month: 'فبراير', sales: 15000 },
-    { month: 'مارس', sales: 18000 },
-    { month: 'أبريل', sales: 14000 },
-    { month: 'مايو', sales: 22000 },
-    { month: 'يونيو', sales: 25000 },
-  ];
-
-  const categoryData = [
-    { name: 'مسكنات', value: 35 },
-    { name: 'مضادات حيوية', value: 25 },
-    { name: 'فيتامينات', value: 20 },
-    { name: 'عناية بالبشرة', value: 12 },
-    { name: 'أخرى', value: 8 },
-  ];
 
   const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 
@@ -106,7 +103,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-gray-900">
-                  {stats?.totalSales.toLocaleString('ar-SA') || '0'} ريال
+                  {stats?.total_sales ? Number(stats.total_sales).toLocaleString('ar-SA') : '0'} ريال
                 </div>
                 <div className="flex items-center gap-1 text-xs text-green-600 mt-2">
                   <TrendingUp className="h-3 w-3" />
@@ -127,7 +124,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-gray-900">
-                  {stats?.totalOrders.toLocaleString('ar-SA') || '0'}
+                  {stats?.total_orders ? Number(stats.total_orders).toLocaleString('ar-SA') : '0'}
                 </div>
                 <div className="flex items-center gap-1 text-xs text-blue-600 mt-2">
                   <TrendingUp className="h-3 w-3" />
@@ -148,7 +145,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-gray-900">
-                  {stats?.customersCount.toLocaleString('ar-SA') || '0'}
+                  {stats?.total_customers ? Number(stats.total_customers).toLocaleString('ar-SA') : '0'}
                 </div>
                 <div className="flex items-center gap-1 text-xs text-purple-600 mt-2">
                   <TrendingUp className="h-3 w-3" />
@@ -169,7 +166,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-gray-900">
-                  {stats?.productsCount.toLocaleString('ar-SA') || '0'}
+                  {stats?.total_products ? Number(stats.total_products).toLocaleString('ar-SA') : '0'}
                 </div>
                 <div className="flex items-center gap-1 text-xs text-orange-600 mt-2">
                   <TrendingUp className="h-3 w-3" />
