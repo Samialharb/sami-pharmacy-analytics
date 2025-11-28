@@ -29,12 +29,12 @@ jobs:
       - name: Run sync script
         env:
           ODOO_URL: ${{ secrets.ODOO_URL }}
-          ODOO_DB: ${{ secrets.ODOO_DB }}
+          ODOO_DB: health-path.erp-ksa.aumet.com
           ODOO_USERNAME: ${{ secrets.ODOO_USERNAME }}
           ODOO_PASSWORD: ${{ secrets.ODOO_PASSWORD }}
-          ODOO_UID: ${{ secrets.ODOO_UID }}
+          ODOO_UID: 7
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           python scripts/sync_aumet_to_supabase.py
       
