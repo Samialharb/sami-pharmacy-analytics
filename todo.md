@@ -408,5 +408,5 @@
 - [x] تحديث getPurchaseStats لاستخدام pagination (بدون حد)
 - [x] تحديث getAllPurchaseOrders لاستخدام pagination (بدون حد)
 - [x] تحديث getTopSuppliers لاستخدام pagination (بدون حد)
-- [ ] رفع التحديثات إلى GitHub
-- [ ] نشر التحديثات على Vercel
+- [x] رفع التحديثات إلى GitHub (commit: 4034e98)
+- [ ] انتظار Vercel للبناء والنشر
