@@ -112,7 +112,7 @@ export async function getAllSalesOrders(): Promise<SalesOrder[]> {
 
     console.log('🔄 Starting to fetch sales orders from pos_order...');
 
-    while (hasMore && pageCount < 30) { // حد أقصى 30 صفحة (30,000 سجل)
+    while (hasMore && pageCount < 1) { // جلب 1000 طلب فقط للأداء الأفضل
       console.log(`📥 Fetching page ${pageCount + 1}, from ${from} to ${from + pageSize - 1}`);
       
       const { data, error } = await supabase
