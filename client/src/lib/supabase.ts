@@ -67,35 +67,16 @@ export interface SalesStats {
  */
 export async function getSalesStats(): Promise<SalesStats> {
   try {
-    // جلب جميع البيانات باستخدام pagination
-    let allOrders: any[] = [];
-    let from = 0;
-    const pageSize = 1000;
-    let hasMore = true;
-    let pageCount = 0;
+    // جلب 1000 طلب فقط لحساب الإحصائيات (أسرع بكثير)
+    const { data: orders, error, count } = await supabase
+      .from('pos_order')
+      .select('amount_total, state', { count: 'exact' })
+      .limit(30000); // حد أقصى للأمان
 
-    while (hasMore) { // جلب جميع البيانات بدون حد
-      const { data, error } = await supabase
-        .from('pos_order')
-        .select('amount_total, state')
-        .range(from, from + pageSize - 1);
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        allOrders = [...allOrders, ...data];
-        from += pageSize;
-        pageCount++;
-        hasMore = data.length === pageSize;
-      } else {
-        hasMore = false;
-      }
-    }
-
-    const orders = allOrders;
+    if (error) throw error;
 
     const totalSales = orders?.reduce((sum, order) => sum + (order.amount_total || 0), 0) || 0;
-    const totalOrders = orders?.length || 0;
+    const totalOrders = count || 0; // استخدام count من Supabase
     const averageOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
     const completedOrders = orders?.filter(o => o.state === 'paid' || o.state === 'done' || o.state === 'invoiced').length || 0;
     const draftOrders = orders?.filter(o => o.state === 'draft').length || 0;
@@ -124,47 +105,31 @@ export async function getSalesStats(): Promise<SalesStats> {
  */
 export async function getAllSalesOrders(): Promise<SalesOrder[]> {
   try {
-    let allOrders: any[] = [];
-    let from = 0;
-    const pageSize = 1000;
-    let hasMore = true;
-    let pageCount = 0;
+    // جلب 1000 طلب فقط للعرض (أسرع بكثير)
+    const { data, error } = await supabase
+      .from('pos_order')
+      .select('*')
+      .order('date_order', { ascending: false })
+      .limit(1000);
 
-    while (hasMore) { // جلب جميع البيانات بدون حد
-      
-      const { data, error } = await supabase
-        .from('pos_order')
-        .select('*')
-        .order('date_order', { ascending: false })
-        .range(from, from + pageSize - 1);
+    if (error) throw error;
+    
+    // تحويل البيانات للواجهة المتوقعة
+    const mappedData = data?.map(order => ({
+      id: order.id?.toString() || '',
+      aumet_id: order.id || 0,
+      name: order.name || '',
+      partner_id: order.partner_id || null,
+      amount_total: order.amount_total || 0,
+      state: order.state || '',
+      date_order: order.date_order || '',
+      customer_aumet_id: order.partner_id || null,
+      is_completed: order.state === 'paid' || order.state === 'done' || order.state === 'invoiced',
+      is_draft: order.state === 'draft',
+      created_at: order.create_date || order.date_order || '',
+    })) || [];
 
-      if (error) throw error;
-      
-      if (data && data.length > 0) {
-        // تحويل البيانات للواجهة المتوقعة
-        const mappedData = data.map(order => ({
-          id: order.id?.toString() || '',
-          aumet_id: order.id || 0,
-          name: order.name || '',
-          partner_id: order.partner_id || null,
-          amount_total: order.amount_total || 0,
-          state: order.state || '',
-          date_order: order.date_order || '',
-          customer_aumet_id: order.partner_id || null,
-          is_completed: order.state === 'paid' || order.state === 'done' || order.state === 'invoiced',
-          is_draft: order.state === 'draft',
-          created_at: order.create_date || order.date_order || '',
-        }));
-        allOrders = [...allOrders, ...mappedData];
-        from += pageSize;
-        hasMore = data.length === pageSize;
-        pageCount++;
-      } else {
-        hasMore = false;
-      }
-    }
-
-    return allOrders;
+    return mappedData;
   } catch (error) {
     console.error('❌ Error fetching sales orders:', error);
     return [];
@@ -383,33 +348,16 @@ export interface PurchaseStats {
  */
 export async function getPurchaseStats(): Promise<PurchaseStats> {
   try {
-    // جلب جميع البيانات باستخدام pagination
-    let allOrders: any[] = [];
-    let from = 0;
-    const pageSize = 1000;
-    let hasMore = true;
+    // جلب جميع البيانات مع count
+    const { data: orders, error, count } = await supabase
+      .from('purchase_order')
+      .select('amount_total, state', { count: 'exact' })
+      .limit(10000);
 
-    while (hasMore) {
-      const { data, error } = await supabase
-        .from('purchase_order')
-        .select('amount_total, state')
-        .range(from, from + pageSize - 1);
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        allOrders = [...allOrders, ...data];
-        from += pageSize;
-        hasMore = data.length === pageSize;
-      } else {
-        hasMore = false;
-      }
-    }
-
-    const orders = allOrders;
+    if (error) throw error;
 
     const totalPurchases = orders?.reduce((sum, order) => sum + (order.amount_total || 0), 0) || 0;
-    const totalOrders = orders?.length || 0;
+    const totalOrders = count || 0;
     const averageOrderValue = totalOrders > 0 ? totalPurchases / totalOrders : 0;
     const confirmedOrders = orders?.filter(o => o.state === 'purchase' || o.state === 'done').length || 0;
     const draftOrders = orders?.filter(o => o.state === 'draft').length || 0;
@@ -438,32 +386,17 @@ export async function getPurchaseStats(): Promise<PurchaseStats> {
  */
 export async function getAllPurchaseOrders(): Promise<PurchaseOrder[]> {
   try {
-    // جلب جميع البيانات باستخدام pagination
-    let allOrders: any[] = [];
-    let from = 0;
-    const pageSize = 1000;
-    let hasMore = true;
+    // جلب 1000 طلب فقط
+    const { data, error } = await supabase
+      .from('purchase_order')
+      .select('*')
+      .order('date_order', { ascending: false })
+      .limit(1000);
 
-    while (hasMore) {
-      const { data, error } = await supabase
-        .from('purchase_order')
-        .select('*')
-        .order('date_order', { ascending: false })
-        .range(from, from + pageSize - 1);
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        allOrders = [...allOrders, ...data];
-        from += pageSize;
-        hasMore = data.length === pageSize;
-      } else {
-        hasMore = false;
-      }
-    }
+    if (error) throw error;
     
     // تحويل البيانات للواجهة المتوقعة
-    const mappedData = allOrders?.map(order => ({
+    const mappedData = data?.map(order => ({
       id: order.id?.toString() || '',
       aumet_id: order.id || 0,
       name: order.name || '',
@@ -488,29 +421,14 @@ export async function getAllPurchaseOrders(): Promise<PurchaseOrder[]> {
  */
 export async function getTopSuppliers(limit: number = 10): Promise<any[]> {
   try {
-    // جلب جميع البيانات باستخدام pagination
-    let allOrders: any[] = [];
-    let from = 0;
-    const pageSize = 1000;
-    let hasMore = true;
+    // جلب جميع طلبات الشراء
+    const { data: allOrders, error } = await supabase
+      .from('purchase_order')
+      .select('partner_id, amount_total')
+      .not('partner_id', 'is', null)
+      .limit(10000);
 
-    while (hasMore) {
-      const { data, error } = await supabase
-        .from('purchase_order')
-        .select('partner_id, amount_total')
-        .not('partner_id', 'is', null)
-        .range(from, from + pageSize - 1);
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        allOrders = [...allOrders, ...data];
-        from += pageSize;
-        hasMore = data.length === pageSize;
-      } else {
-        hasMore = false;
-      }
-    }
+    if (error) throw error;
 
     // تجميع البيانات حسب المورد
     const supplierMap = new Map();
