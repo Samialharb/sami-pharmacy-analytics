@@ -339,3 +339,145 @@ export async function getSuppliersCount(): Promise<number> {
     return 0;
   }
 }
+
+/**
+ * Purchase Order interface
+ */
+export interface PurchaseOrder {
+  id: string;
+  aumet_id: number;
+  name: string;
+  partner_id: number | null;
+  supplier_name: string | null;
+  amount_total: number;
+  state: string;
+  date_order: string;
+  date_approve: string | null;
+  created_at: string;
+}
+
+/**
+ * Purchase Stats interface
+ */
+export interface PurchaseStats {
+  totalPurchases: number;
+  totalOrders: number;
+  averageOrderValue: number;
+  confirmedOrders: number;
+  draftOrders: number;
+}
+
+/**
+ * الحصول على إحصائيات المشتريات من purchase_order
+ */
+export async function getPurchaseStats(): Promise<PurchaseStats> {
+  try {
+    const { data: orders, error } = await supabase
+      .from('purchase_order')
+      .select('amount_total, state')
+      .range(0, 9999);
+
+    if (error) throw error;
+
+    const totalPurchases = orders?.reduce((sum, order) => sum + (order.amount_total || 0), 0) || 0;
+    const totalOrders = orders?.length || 0;
+    const averageOrderValue = totalOrders > 0 ? totalPurchases / totalOrders : 0;
+    const confirmedOrders = orders?.filter(o => o.state === 'purchase' || o.state === 'done').length || 0;
+    const draftOrders = orders?.filter(o => o.state === 'draft').length || 0;
+
+    return {
+      totalPurchases,
+      totalOrders,
+      averageOrderValue,
+      confirmedOrders,
+      draftOrders,
+    };
+  } catch (error) {
+    console.error('Error fetching purchase stats:', error);
+    return {
+      totalPurchases: 0,
+      totalOrders: 0,
+      averageOrderValue: 0,
+      confirmedOrders: 0,
+      draftOrders: 0,
+    };
+  }
+}
+
+/**
+ * الحصول على جميع طلبات الشراء من purchase_order
+ */
+export async function getAllPurchaseOrders(): Promise<PurchaseOrder[]> {
+  try {
+    const { data, error } = await supabase
+      .from('purchase_order')
+      .select('*')
+      .order('date_order', { ascending: false })
+      .range(0, 9999);
+
+    if (error) throw error;
+    
+    // تحويل البيانات للواجهة المتوقعة
+    const mappedData = data?.map(order => ({
+      id: order.id?.toString() || '',
+      aumet_id: order.id || 0,
+      name: order.name || '',
+      partner_id: order.partner_id || null,
+      supplier_name: order.partner_id ? `مورد #${order.partner_id}` : null,
+      amount_total: order.amount_total || 0,
+      state: order.state || '',
+      date_order: order.date_order || '',
+      date_approve: order.date_approve || null,
+      created_at: order.create_date || order.date_order || '',
+    })) || [];
+    
+    return mappedData;
+  } catch (error) {
+    console.error('Error fetching purchase orders:', error);
+    return [];
+  }
+}
+
+/**
+ * الحصول على أفضل الموردين حسب المشتريات
+ */
+export async function getTopSuppliers(limit: number = 10): Promise<any[]> {
+  try {
+    const { data, error } = await supabase
+      .from('purchase_order')
+      .select('partner_id, amount_total')
+      .not('partner_id', 'is', null)
+      .range(0, 9999);
+
+    if (error) throw error;
+
+    // تجميع البيانات حسب المورد
+    const supplierMap = new Map();
+    data?.forEach(order => {
+      const supplierId = order.partner_id;
+      if (supplierId) {
+        const current = supplierMap.get(supplierId) || { totalAmount: 0, orderCount: 0 };
+        supplierMap.set(supplierId, {
+          totalAmount: current.totalAmount + (order.amount_total || 0),
+          orderCount: current.orderCount + 1,
+        });
+      }
+    });
+
+    // تحويل إلى مصفوفة وترتيب
+    const suppliers = Array.from(supplierMap.entries())
+      .map(([supplierId, stats]) => ({
+        supplier_id: supplierId,
+        supplier_name: `مورد #${supplierId}`,
+        total_amount: stats.totalAmount,
+        order_count: stats.orderCount,
+      }))
+      .sort((a, b) => b.total_amount - a.total_amount)
+      .slice(0, limit);
+
+    return suppliers;
+  } catch (error) {
+    console.error('Error fetching top suppliers:', error);
+    return [];
+  }
+}
