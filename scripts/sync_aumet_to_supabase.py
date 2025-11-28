@@ -149,6 +149,7 @@ def sync_sales_orders(models, uid, supabase):
                 'aumet_id': order['id'],
                 'name': order['name'],
                 'partner_id': order['partner_id'][0] if order.get('partner_id') else None,
+                'date_order': order.get('date_order'),
                 'amount_total': float(order['amount_total']),
                 'state': order['state']
             })

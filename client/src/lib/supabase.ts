@@ -69,7 +69,7 @@ export async function getSalesStats(): Promise<SalesStats> {
   try {
     // جلب 1000 طلب فقط لحساب الإحصائيات (أسرع بكثير)
     const { data: orders, error, count } = await supabase
-      .from('pos_order')
+      .from('aumet_sales_orders')
       .select('amount_total, state', { count: 'exact' })
       .limit(30000); // حد أقصى للأمان
 
@@ -107,7 +107,7 @@ export async function getAllSalesOrders(): Promise<SalesOrder[]> {
   try {
     // جلب 1000 طلب فقط للعرض (أسرع بكثير)
     const { data, error } = await supabase
-      .from('pos_order')
+      .from('aumet_sales_orders')
       .select('*')
       .order('date_order', { ascending: false })
       .limit(1000);
