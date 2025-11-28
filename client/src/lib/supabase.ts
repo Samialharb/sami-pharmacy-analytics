@@ -69,16 +69,16 @@ export async function getSalesStats(): Promise<SalesStats> {
   try {
     const { data: orders, error } = await supabase
       .from('pos_order')
-      .select('amount_total, is_completed, is_draft')
+      .select('amount_total, state')
       .range(0, 29999);
 
     if (error) throw error;
 
-    const totalSales = orders?.reduce((sum, order) => sum + (order.amount_total || 0), 0) || 0;
+    const totalSales = orders?.reduce((sum, order) => sum + (Number(order.amount_total) || 0), 0) || 0;
     const totalOrders = orders?.length || 0;
     const averageOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
-    const completedOrders = orders?.filter(o => o.is_completed).length || 0;
-    const draftOrders = orders?.filter(o => o.is_draft).length || 0;
+    const completedOrders = orders?.filter(o => o.state === 'paid' || o.state === 'done' || o.state === 'invoiced').length || 0;
+    const draftOrders = orders?.filter(o => o.state === 'draft').length || 0;
 
     return {
       totalSales,
