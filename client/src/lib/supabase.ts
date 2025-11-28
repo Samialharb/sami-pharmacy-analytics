@@ -11,15 +11,6 @@ import { SUPABASE_CONFIG } from '@shared/supabase';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL || SUPABASE_CONFIG.url;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY || SUPABASE_CONFIG.anonKey;
 
-// Debug: طباعة القيم للتحقق (سيتم إزالتها لاحقاً)
-console.log('🔍 Supabase Debug Info:');
-console.log('VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL);
-console.log('SUPABASE_URL:', import.meta.env.SUPABASE_URL);
-console.log('Final supabaseUrl:', supabaseUrl);
-console.log('Has VITE_SUPABASE_ANON_KEY:', !!import.meta.env.VITE_SUPABASE_ANON_KEY);
-console.log('Has SUPABASE_ANON_KEY:', !!import.meta.env.SUPABASE_ANON_KEY);
-console.log('Using fallback from SUPABASE_CONFIG:', supabaseUrl === SUPABASE_CONFIG.url);
-
 // إنشاء Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 

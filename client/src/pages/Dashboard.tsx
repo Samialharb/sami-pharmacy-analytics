@@ -26,23 +26,27 @@ export default function Dashboard() {
     async function fetchStats() {
       try {
         setIsLoading(true);
-        // جلب الإحصائيات من Supabase مباشرة
-        const { data: orders } = await supabase.from('pos_order').select('amount_total, state').range(0, 29999);
-        const { data: customers } = await supabase.from('res_partner').select('id', { count: 'exact', head: true });
-        const { data: products } = await supabase.from('product_template').select('id', { count: 'exact', head: true });
+        // جلب الإحصائيات من Supabase مباشرة باستخدام RPC function
+        const { data: salesStats, error: salesStatsError } = await supabase.rpc('get_sales_stats');
         
-        const totalSales = orders?.reduce((sum, o) => sum + (o.amount_total || 0), 0) || 0;
-        const totalOrders = orders?.length || 0;
-        const completedOrders = orders?.filter(o => o.state === 'paid' || o.state === 'done' || o.state === 'invoiced').length || 0;
+        const totalSales = salesStats && salesStats.length > 0 ? Number(salesStats[0].total_sales) : 0;
+        const totalOrders = salesStats && salesStats.length > 0 ? Number(salesStats[0].total_count) : 0;
+        
+        const { count: customersCount, error: customersError } = await supabase.from('aumet_customers').select('*', { count: 'exact', head: true });
+        const { count: productsCount, error: productsError } = await supabase.from('aumet_products').select('*', { count: 'exact', head: true });
+        
+        // جلب عينة لحساب completedOrders
+        const { data: sampleOrders, error: sampleError } = await supabase.from('aumet_sales_orders').select('state').limit(1000);
+        const completedOrders = sampleOrders?.filter(o => o.state === 'paid' || o.state === 'done' || o.state === 'invoiced').length || 0;
         
         const dashboardStats = {
           totalSales,
-          totalOrders,
-          averageOrderValue: totalOrders > 0 ? totalSales / totalOrders : 0,
+          totalOrders: totalOrders || 0,
+          averageOrderValue: totalOrders && totalOrders > 0 ? totalSales / totalOrders : 0,
           completedOrders,
-          draftOrders: orders?.filter(o => o.state === 'draft').length || 0,
-          customersCount: customers?.length || 0,
-          productsCount: products?.length || 0,
+          draftOrders: sampleOrders?.filter(o => o.state === 'draft').length || 0,
+          customersCount: customersCount || 0,
+          productsCount: productsCount || 0,
           totalInventory: 0,
         };
         
@@ -120,7 +124,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-gray-900">
-                  {stats?.total_sales ? Number(stats.total_sales).toLocaleString('ar-SA') : '0'} ريال
+                  {stats?.totalSales ? Number(stats.totalSales).toLocaleString('ar-SA') : '0'} ريال
                 </div>
                 <div className="flex items-center gap-1 text-xs text-green-600 mt-2">
                   <TrendingUp className="h-3 w-3" />
@@ -141,7 +145,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-gray-900">
-                  {stats?.total_orders ? Number(stats.total_orders).toLocaleString('ar-SA') : '0'}
+                  {stats?.totalOrders ? Number(stats.totalOrders).toLocaleString('ar-SA') : '0'}
                 </div>
                 <div className="flex items-center gap-1 text-xs text-blue-600 mt-2">
                   <TrendingUp className="h-3 w-3" />
@@ -162,7 +166,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-gray-900">
-                  {stats?.total_customers ? Number(stats.total_customers).toLocaleString('ar-SA') : '0'}
+                  {stats?.customersCount ? Number(stats.customersCount).toLocaleString('ar-SA') : '0'}
                 </div>
                 <div className="flex items-center gap-1 text-xs text-purple-600 mt-2">
                   <TrendingUp className="h-3 w-3" />
@@ -183,7 +187,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-gray-900">
-                  {stats?.total_products ? Number(stats.total_products).toLocaleString('ar-SA') : '0'}
+                  {stats?.productsCount ? Number(stats.productsCount).toLocaleString('ar-SA') : '0'}
                 </div>
                 <div className="flex items-center gap-1 text-xs text-orange-600 mt-2">
                   <TrendingUp className="h-3 w-3" />
