@@ -63,13 +63,13 @@ export interface SalesStats {
 }
 
 /**
- * الحصول على إحصائيات المبيعات
+ * الحصول على إحصائيات المبيعات من pos_order (الجدول الحقيقي)
  */
 export async function getSalesStats(): Promise<SalesStats> {
   try {
     const { data: orders, error } = await supabase
-      .from('aumet_sales_orders')
-      .select('amount_total, is_completed, is_draft')
+      .from('pos_order')
+      .select('amount_total, state')
       .range(0, 29999);
 
     if (error) throw error;
@@ -77,8 +77,8 @@ export async function getSalesStats(): Promise<SalesStats> {
     const totalSales = orders?.reduce((sum, order) => sum + (order.amount_total || 0), 0) || 0;
     const totalOrders = orders?.length || 0;
     const averageOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
-    const completedOrders = orders?.filter(o => o.is_completed).length || 0;
-    const draftOrders = orders?.filter(o => o.is_draft).length || 0;
+    const completedOrders = orders?.filter(o => o.state === 'paid' || o.state === 'done' || o.state === 'invoiced').length || 0;
+    const draftOrders = orders?.filter(o => o.state === 'draft').length || 0;
 
     return {
       totalSales,
@@ -100,23 +100,23 @@ export async function getSalesStats(): Promise<SalesStats> {
 }
 
 /**
- * الحصول على جميع طلبات المبيعات
+ * الحصول على جميع طلبات المبيعات من pos_order (الجدول الحقيقي)
  */
 export async function getAllSalesOrders(): Promise<SalesOrder[]> {
   try {
-    let allOrders: SalesOrder[] = [];
+    let allOrders: any[] = [];
     let from = 0;
     const pageSize = 1000;
     let hasMore = true;
     let pageCount = 0;
 
-    console.log('🔄 Starting to fetch sales orders...');
+    console.log('🔄 Starting to fetch sales orders from pos_order...');
 
     while (hasMore && pageCount < 30) { // حد أقصى 30 صفحة (30,000 سجل)
       console.log(`📥 Fetching page ${pageCount + 1}, from ${from} to ${from + pageSize - 1}`);
       
       const { data, error } = await supabase
-        .from('aumet_sales_orders')
+        .from('pos_order')
         .select('*')
         .order('date_order', { ascending: false })
         .range(from, from + pageSize - 1);
@@ -128,7 +128,21 @@ export async function getAllSalesOrders(): Promise<SalesOrder[]> {
       
       if (data && data.length > 0) {
         console.log(`✅ Fetched ${data.length} orders, total so far: ${allOrders.length + data.length}`);
-        allOrders = [...allOrders, ...data];
+        // تحويل البيانات للواجهة المتوقعة
+        const mappedData = data.map(order => ({
+          id: order.id?.toString() || '',
+          aumet_id: order.id || 0,
+          name: order.name || '',
+          partner_id: order.partner_id || null,
+          amount_total: order.amount_total || 0,
+          state: order.state || '',
+          date_order: order.date_order || '',
+          customer_aumet_id: order.partner_id || null,
+          is_completed: order.state === 'paid' || order.state === 'done' || order.state === 'invoiced',
+          is_draft: order.state === 'draft',
+          created_at: order.create_date || order.date_order || '',
+        }));
+        allOrders = [...allOrders, ...mappedData];
         from += pageSize;
         hasMore = data.length === pageSize;
         pageCount++;
@@ -147,18 +161,31 @@ export async function getAllSalesOrders(): Promise<SalesOrder[]> {
 }
 
 /**
- * الحصول على جميع العملاء
+ * الحصول على جميع العملاء من res_partner (الجدول الحقيقي)
  */
 export async function getAllCustomers(): Promise<Customer[]> {
   try {
     const { data, error } = await supabase
-      .from('aumet_customers')
+      .from('res_partner')
       .select('*')
       .order('name', { ascending: true })
       .range(0, 29999);
 
     if (error) throw error;
-    return data || [];
+    
+    // تحويل البيانات للواجهة المتوقعة
+    const mappedData = data?.map(partner => ({
+      id: partner.id?.toString() || '',
+      aumet_id: partner.id || 0,
+      name: partner.name || '',
+      email: partner.email || null,
+      phone: partner.phone || partner.mobile || null,
+      city: partner.city || null,
+      country_id: partner.country_id || null,
+      created_at: partner.create_date || '',
+    })) || [];
+    
+    return mappedData;
   } catch (error) {
     console.error('Error fetching customers:', error);
     return [];
@@ -166,18 +193,32 @@ export async function getAllCustomers(): Promise<Customer[]> {
 }
 
 /**
- * الحصول على جميع المنتجات
+ * الحصول على جميع المنتجات من product_template (الجدول الحقيقي)
  */
 export async function getAllProducts(): Promise<Product[]> {
   try {
     const { data, error } = await supabase
-      .from('aumet_products')
+      .from('product_template')
       .select('*')
       .order('name', { ascending: true })
       .range(0, 29999);
 
     if (error) throw error;
-    return data || [];
+    
+    // تحويل البيانات للواجهة المتوقعة
+    const mappedData = data?.map(product => ({
+      id: product.id?.toString() || '',
+      aumet_id: product.id || 0,
+      name: product.name || '',
+      default_code: product.default_code || null,
+      list_price: product.list_price || 0,
+      standard_price: product.standard_price || 0,
+      qty_available: product.qty_available || 0,
+      categ_id: product.categ_id || null,
+      created_at: product.create_date || '',
+    })) || [];
+    
+    return mappedData;
   } catch (error) {
     console.error('Error fetching products:', error);
     return [];
@@ -185,12 +226,12 @@ export async function getAllProducts(): Promise<Product[]> {
 }
 
 /**
- * الحصول على عدد العملاء
+ * الحصول على عدد العملاء من res_partner
  */
 export async function getCustomersCount(): Promise<number> {
   try {
     const { count, error } = await supabase
-      .from('aumet_customers')
+      .from('res_partner')
       .select('*', { count: 'exact', head: true });
 
     if (error) throw error;
@@ -202,12 +243,12 @@ export async function getCustomersCount(): Promise<number> {
 }
 
 /**
- * الحصول على عدد المنتجات
+ * الحصول على عدد المنتجات من product_template
  */
 export async function getProductsCount(): Promise<number> {
   try {
-    const { count, error } = await supabase
-      .from('aumet_products')
+    const { count, error} = await supabase
+      .from('product_template')
       .select('*', { count: 'exact', head: true });
 
     if (error) throw error;
@@ -219,17 +260,17 @@ export async function getProductsCount(): Promise<number> {
 }
 
 /**
- * الحصول على إجمالي كمية المخزون
+ * الحصول على إجمالي كمية المخزون من stock_quant
  */
 export async function getTotalInventory(): Promise<number> {
   try {
     const { data, error } = await supabase
-      .from('aumet_products')
-      .select('qty_available')
+      .from('stock_quant')
+      .select('quantity')
       .range(0, 29999);
 
     if (error) throw error;
-    return data?.reduce((sum, product) => sum + (product.qty_available || 0), 0) || 0;
+    return data?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
   } catch (error) {
     console.error('Error fetching total inventory:', error);
     return 0;
@@ -250,17 +291,31 @@ export interface Supplier {
 }
 
 /**
- * Get all suppliers
+ * Get all suppliers من res_partner (الموردين)
  */
 export async function getAllSuppliers(): Promise<Supplier[]> {
   try {
     const { data, error } = await supabase
-      .from('suppliers')
+      .from('res_partner')
       .select('*')
-      .order('name', { ascending: true });
+      .eq('supplier_rank', 1)
+      .order('name', { ascending: true })
+      .range(0, 9999);
 
     if (error) throw error;
-    return data || [];
+    
+    // تحويل البيانات للواجهة المتوقعة
+    const mappedData = data?.map(partner => ({
+      id: partner.id?.toString() || '',
+      name: partner.name || '',
+      contact_person: partner.contact_name || null,
+      phone: partner.phone || partner.mobile || null,
+      email: partner.email || null,
+      address: partner.street || null,
+      created_at: partner.create_date || '',
+    })) || [];
+    
+    return mappedData;
   } catch (error) {
     console.error('Error fetching suppliers:', error);
     return [];
@@ -268,13 +323,14 @@ export async function getAllSuppliers(): Promise<Supplier[]> {
 }
 
 /**
- * Get suppliers count
+ * Get suppliers count من res_partner
  */
 export async function getSuppliersCount(): Promise<number> {
   try {
     const { count, error } = await supabase
-      .from('suppliers')
-      .select('*', { count: 'exact', head: true });
+      .from('res_partner')
+      .select('*', { count: 'exact', head: true })
+      .eq('supplier_rank', 1);
 
     if (error) throw error;
     return count || 0;
