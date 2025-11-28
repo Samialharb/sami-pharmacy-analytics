@@ -504,3 +504,23 @@
 - [ ] تحديث getSuppliersCount() → aumet_customers (supplier_rank > 0)
 - [ ] اختبار الموقع
 - [ ] حفظ checkpoint
+
+
+---
+
+## 🔧 إصلاح عدم ظهور البيانات على Vercel
+
+**المشكلة:**
+- الموقع محدّث على Vercel (commit 90eab52)
+- لكن البيانات لا تظهر (0 ريال، 0 طلبات)
+
+**السبب المحتمل:**
+- SUPABASE_ANON_KEY في shared/supabase.ts hardcoded
+- لكن Vercel يستخدم environment variables مختلفة
+
+**الحل:**
+- [x] فحص كيف يقرأ الموقع SUPABASE credentials - hardcoded في shared/supabase.ts
+- [x] تحويل hardcoded values إلى environment variables
+- [ ] رفع التحديث إلى GitHub
+- [ ] تحديث Vercel environment variables (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)
+- [ ] اختبار الموقع
