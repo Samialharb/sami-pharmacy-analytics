@@ -482,3 +482,25 @@
 - [x] إضافة date_order إلى السكريبت
 - [ ] تشغيل المزامنة مرة ثانية
 - [ ] التأكد من تحديث البيانات في الموقع
+
+
+---
+
+## 🔄 تحديث جميع جداول الموقع لتتطابق مع Supabase
+
+### المشكلة:
+- الموقع يقرأ من جداول قديمة (pos_order, res_partner, product_template)
+- البيانات الحقيقية في جداول جديدة (aumet_sales_orders, aumet_customers, aumet_products)
+
+### الحل:
+- [ ] تحديث getSalesStats() → aumet_sales_orders
+- [ ] تحديث getAllSalesOrders() → aumet_sales_orders  
+- [ ] تحديث getAllCustomers() → aumet_customers
+- [ ] تحديث getAllProducts() → aumet_products
+- [ ] تحديث getCustomersCount() → aumet_customers
+- [ ] تحديث getProductsCount() → aumet_products
+- [ ] تحديث getInventoryValue() → aumet_inventory
+- [ ] تحديث getTopSuppliers() → aumet_customers (supplier_rank > 0)
+- [ ] تحديث getSuppliersCount() → aumet_customers (supplier_rank > 0)
+- [ ] اختبار الموقع
+- [ ] حفظ checkpoint

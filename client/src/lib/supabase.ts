@@ -142,7 +142,7 @@ export async function getAllSalesOrders(): Promise<SalesOrder[]> {
 export async function getAllCustomers(): Promise<Customer[]> {
   try {
     const { data, error } = await supabase
-      .from('res_partner')
+      .from('aumet_customers')
       .select('*')
       .order('name', { ascending: true })
 ;
@@ -174,7 +174,7 @@ export async function getAllCustomers(): Promise<Customer[]> {
 export async function getAllProducts(): Promise<Product[]> {
   try {
     const { data, error } = await supabase
-      .from('product_template')
+      .from('aumet_products')
       .select('*')
       .order('name', { ascending: true })
 ;
@@ -207,7 +207,7 @@ export async function getAllProducts(): Promise<Product[]> {
 export async function getCustomersCount(): Promise<number> {
   try {
     const { count, error } = await supabase
-      .from('res_partner')
+      .from('aumet_customers')
       .select('*', { count: 'exact', head: true });
 
     if (error) throw error;
@@ -224,7 +224,7 @@ export async function getCustomersCount(): Promise<number> {
 export async function getProductsCount(): Promise<number> {
   try {
     const { count, error} = await supabase
-      .from('product_template')
+      .from('aumet_products')
       .select('*', { count: 'exact', head: true });
 
     if (error) throw error;
@@ -241,7 +241,7 @@ export async function getProductsCount(): Promise<number> {
 export async function getTotalInventory(): Promise<number> {
   try {
     const { data, error } = await supabase
-      .from('stock_quant')
+      .from('aumet_inventory')
       .select('quantity')
 ;
 
@@ -272,9 +272,9 @@ export interface Supplier {
 export async function getAllSuppliers(): Promise<Supplier[]> {
   try {
     const { data, error } = await supabase
-      .from('res_partner')
+      .from('aumet_customers')
       .select('*')
-      .eq('supplier_rank', 1)
+      .gt('supplier_rank', 0)
       .order('name', { ascending: true })
 ;
 
@@ -304,9 +304,9 @@ export async function getAllSuppliers(): Promise<Supplier[]> {
 export async function getSuppliersCount(): Promise<number> {
   try {
     const { count, error } = await supabase
-      .from('res_partner')
+      .from('aumet_customers')
       .select('*', { count: 'exact', head: true })
-      .eq('supplier_rank', 1);
+      .gt('supplier_rank', 0);
 
     if (error) throw error;
     return count || 0;
