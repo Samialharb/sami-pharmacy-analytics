@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Loader2, TrendingUp, TrendingDown, DollarSign, ShoppingCart, Users, Package, AlertTriangle, FileText } from "lucide-react";
 import Layout from "@/components/Layout";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { getDashboardStats, getSalesByMonth, getProductsByCategory } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 interface Stats {
   totalSales: number;
@@ -26,11 +26,28 @@ export default function Dashboard() {
     async function fetchStats() {
       try {
         setIsLoading(true);
-        const [dashboardStats, salesByMonth, productsByCategory] = await Promise.all([
-          getDashboardStats(),
-          getSalesByMonth(),
-          getProductsByCategory(),
-        ]);
+        // جلب الإحصائيات من Supabase مباشرة
+        const { data: orders } = await supabase.from('pos_order').select('amount_total, state').range(0, 29999);
+        const { data: customers } = await supabase.from('res_partner').select('id', { count: 'exact', head: true });
+        const { data: products } = await supabase.from('product_template').select('id', { count: 'exact', head: true });
+        
+        const totalSales = orders?.reduce((sum, o) => sum + (o.amount_total || 0), 0) || 0;
+        const totalOrders = orders?.length || 0;
+        const completedOrders = orders?.filter(o => o.state === 'paid' || o.state === 'done' || o.state === 'invoiced').length || 0;
+        
+        const dashboardStats = {
+          totalSales,
+          totalOrders,
+          averageOrderValue: totalOrders > 0 ? totalSales / totalOrders : 0,
+          completedOrders,
+          draftOrders: orders?.filter(o => o.state === 'draft').length || 0,
+          customersCount: customers?.length || 0,
+          productsCount: products?.length || 0,
+          totalInventory: 0,
+        };
+        
+        const salesByMonth: any[] = [];
+        const productsByCategory: any[] = [];
 
         setStats(dashboardStats);
         
