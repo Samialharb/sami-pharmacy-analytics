@@ -70,7 +70,7 @@ export async function getSalesStats(): Promise<SalesStats> {
     const { data: orders, error } = await supabase
       .from('pos_order')
       .select('amount_total, state')
-      .range(0, 29999);
+;
 
     if (error) throw error;
 
@@ -169,7 +169,7 @@ export async function getAllCustomers(): Promise<Customer[]> {
       .from('res_partner')
       .select('*')
       .order('name', { ascending: true })
-      .range(0, 29999);
+;
 
     if (error) throw error;
     
@@ -201,7 +201,7 @@ export async function getAllProducts(): Promise<Product[]> {
       .from('product_template')
       .select('*')
       .order('name', { ascending: true })
-      .range(0, 29999);
+;
 
     if (error) throw error;
     
@@ -267,7 +267,7 @@ export async function getTotalInventory(): Promise<number> {
     const { data, error } = await supabase
       .from('stock_quant')
       .select('quantity')
-      .range(0, 29999);
+;
 
     if (error) throw error;
     return data?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
@@ -300,7 +300,7 @@ export async function getAllSuppliers(): Promise<Supplier[]> {
       .select('*')
       .eq('supplier_rank', 1)
       .order('name', { ascending: true })
-      .range(0, 29999);
+;
 
     if (error) throw error;
     
@@ -375,7 +375,7 @@ export async function getPurchaseStats(): Promise<PurchaseStats> {
     const { data: orders, error } = await supabase
       .from('purchase_order')
       .select('amount_total, state')
-      .range(0, 29999);
+;
 
     if (error) throw error;
 
@@ -413,7 +413,7 @@ export async function getAllPurchaseOrders(): Promise<PurchaseOrder[]> {
       .from('purchase_order')
       .select('*')
       .order('date_order', { ascending: false })
-      .range(0, 29999);
+;
 
     if (error) throw error;
     
@@ -447,7 +447,7 @@ export async function getTopSuppliers(limit: number = 10): Promise<any[]> {
       .from('purchase_order')
       .select('partner_id, amount_total')
       .not('partner_id', 'is', null)
-      .range(0, 29999);
+;
 
     if (error) throw error;
 
