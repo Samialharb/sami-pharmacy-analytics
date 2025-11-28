@@ -68,7 +68,7 @@ export interface SalesStats {
 export async function getSalesStats(): Promise<SalesStats> {
   try {
     const { data: orders, error } = await supabase
-      .from('aumet_sales_orders')
+      .from('pos_order')
       .select('amount_total, is_completed, is_draft')
       .range(0, 29999);
 
@@ -116,7 +116,7 @@ export async function getAllSalesOrders(): Promise<SalesOrder[]> {
       console.log(`📥 Fetching page ${pageCount + 1}, from ${from} to ${from + pageSize - 1}`);
       
       const { data, error } = await supabase
-        .from('aumet_sales_orders')
+        .from('pos_order')
         .select('*')
         .order('date_order', { ascending: false })
         .range(from, from + pageSize - 1);
@@ -152,7 +152,7 @@ export async function getAllSalesOrders(): Promise<SalesOrder[]> {
 export async function getAllCustomers(): Promise<Customer[]> {
   try {
     const { data, error } = await supabase
-      .from('aumet_customers')
+      .from('res_partner')
       .select('*')
       .order('name', { ascending: true })
       .range(0, 29999);
@@ -171,7 +171,7 @@ export async function getAllCustomers(): Promise<Customer[]> {
 export async function getAllProducts(): Promise<Product[]> {
   try {
     const { data, error } = await supabase
-      .from('aumet_products')
+      .from('product_template')
       .select('*')
       .order('name', { ascending: true })
       .range(0, 29999);
@@ -190,7 +190,7 @@ export async function getAllProducts(): Promise<Product[]> {
 export async function getCustomersCount(): Promise<number> {
   try {
     const { count, error } = await supabase
-      .from('aumet_customers')
+      .from('res_partner')
       .select('*', { count: 'exact', head: true });
 
     if (error) throw error;
@@ -207,7 +207,7 @@ export async function getCustomersCount(): Promise<number> {
 export async function getProductsCount(): Promise<number> {
   try {
     const { count, error } = await supabase
-      .from('aumet_products')
+      .from('product_template')
       .select('*', { count: 'exact', head: true });
 
     if (error) throw error;
@@ -224,7 +224,7 @@ export async function getProductsCount(): Promise<number> {
 export async function getTotalInventory(): Promise<number> {
   try {
     const { data, error } = await supabase
-      .from('aumet_products')
+      .from('product_template')
       .select('qty_available')
       .range(0, 29999);
 
