@@ -7,14 +7,6 @@ on:
   
   # تشغيل يدوي من واجهة GitHub
   workflow_dispatch:
-  
-  # تشغيل عند Push (للاختبار)
-  push:
-    branches:
-      - main
-    paths:
-      - 'scripts/sync_aumet_to_supabase.py'
-      - '.github/workflows/sync-aumet.yml'
 
 jobs:
   sync:
