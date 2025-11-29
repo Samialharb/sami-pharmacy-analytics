@@ -32,11 +32,11 @@ export default function Dashboard() {
         const totalSales = salesStats && salesStats.length > 0 ? Number(salesStats[0].total_sales) : 0;
         const totalOrders = salesStats && salesStats.length > 0 ? Number(salesStats[0].total_count) : 0;
         
-        const { count: customersCount, error: customersError } = await supabase.from('res_partner').select('*', { count: 'exact', head: true });
-        const { count: productsCount, error: productsError } = await supabase.from('product_template').select('*', { count: 'exact', head: true });
+        const { count: customersCount, error: customersError } = await supabase.from('aumet_customers').select('*', { count: 'exact', head: true });
+        const { count: productsCount, error: productsError } = await supabase.from('aumet_products').select('*', { count: 'exact', head: true });
         
         // جلب عينة لحساب completedOrders
-        const { data: sampleOrders, error: sampleError } = await supabase.from('pos_order').select('state').limit(1000);
+        const { data: sampleOrders, error: sampleError } = await supabase.from('aumet_sales_orders').select('state').limit(1000);
         const completedOrders = sampleOrders?.filter(o => o.state === 'paid' || o.state === 'done' || o.state === 'invoiced').length || 0;
         
         const dashboardStats = {

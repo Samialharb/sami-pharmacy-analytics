@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Loader2, FileDown, FileSpreadsheet } from "lucide-react";
 import { exportToExcel, exportToPDF } from "@/lib/exportUtils";
 import Layout from "@/components/Layout";
-import { getAllSalesOrders, getSalesStats, type SalesOrder } from "@/lib/supabase";
+import { getAllSalesOrders, getSalesStats, getSalesOrdersByPeriod, type SalesOrder } from "@/lib/supabase";
 
 export default function Sales() {
   const [selectedPeriod, setSelectedPeriod] = useState<'all' | 'daily' | 'monthly' | 'yearly'>('all');
@@ -23,12 +23,7 @@ export default function Sales() {
     async function fetchData() {
       try {
         setIsLoading(true);
-        const [orders, salesStats] = await Promise.all([
-          getAllSalesOrders(),
-          getSalesStats(),
-        ]);
-        setAllOrders(orders);
-        setFilteredOrders(orders);
+        const salesStats = await getSalesStats();
         setStats(salesStats);
       } catch (error) {
         console.error('Error fetching sales data:', error);
@@ -40,36 +35,36 @@ export default function Sales() {
     fetchData();
   }, []);
 
-  // تطبيق الفلترة حسب الفترة
+  // جلب الطلبات حسب الفترة من Supabase مباشرة
   useEffect(() => {
-    if (!allOrders.length) return;
-
-    let filtered = [...allOrders];
-
-    if (selectedPeriod === 'daily') {
-      filtered = filtered.filter(order => {
-        const orderDate = new Date(order.date_order).toISOString().split('T')[0];
-        return orderDate === selectedDate;
-      });
-    } else if (selectedPeriod === 'monthly') {
-      filtered = filtered.filter(order => {
-        const orderDate = new Date(order.date_order);
-        return orderDate.getMonth() + 1 === selectedMonth && orderDate.getFullYear() === selectedYear;
-      });
-    } else if (selectedPeriod === 'yearly') {
-      filtered = filtered.filter(order => {
-        const orderDate = new Date(order.date_order);
-        return orderDate.getFullYear() === selectedYear;
-      });
+    async function fetchOrders() {
+      try {
+        setIsLoading(true);
+        console.log('🔍 Fetching orders:', { selectedPeriod, selectedDate, selectedMonth, selectedYear });
+        const orders = await getSalesOrdersByPeriod(
+          selectedPeriod,
+          selectedDate,
+          selectedMonth,
+          selectedYear
+        );
+        console.log('✅ Fetched orders:', orders.length);
+        setFilteredOrders(orders);
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+      } finally {
+        setIsLoading(false);
+      }
     }
 
-    setFilteredOrders(filtered);
-  }, [selectedPeriod, selectedDate, selectedMonth, selectedYear, allOrders]);
+    fetchOrders();
+  }, [selectedPeriod, selectedDate, selectedMonth, selectedYear]);
 
   // حساب الإحصائيات للفترة المختارة
   const currentTotal = filteredOrders.reduce((sum, order) => sum + order.amount_total, 0);
   const currentCount = filteredOrders.length;
   const currentAverage = currentCount > 0 ? currentTotal / currentCount : 0;
+  
+  console.log('📊 Stats:', { currentTotal, currentCount, currentAverage, filteredOrdersLength: filteredOrders.length });
 
   return (
     <Layout>
@@ -198,9 +193,22 @@ export default function Sales() {
                       onChange={(e) => setSelectedMonth(Number(e.target.value))}
                       className="px-4 py-2 border rounded-md"
                     >
-                      {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
-                        <option key={month} value={month}>
-                          {new Date(2025, month - 1).toLocaleDateString('ar-SA', { month: 'long' })}
+                      {[
+                        { value: 1, label: 'يناير' },
+                        { value: 2, label: 'فبراير' },
+                        { value: 3, label: 'مارس' },
+                        { value: 4, label: 'أبريل' },
+                        { value: 5, label: 'مايو' },
+                        { value: 6, label: 'يونيو' },
+                        { value: 7, label: 'يوليو' },
+                        { value: 8, label: 'أغسطس' },
+                        { value: 9, label: 'سبتمبر' },
+                        { value: 10, label: 'أكتوبر' },
+                        { value: 11, label: 'نوفمبر' },
+                        { value: 12, label: 'ديسمبر' },
+                      ].map(month => (
+                        <option key={month.value} value={month.value}>
+                          {month.label}
                         </option>
                       ))}
                     </select>

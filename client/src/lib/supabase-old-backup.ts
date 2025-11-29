@@ -69,7 +69,7 @@ export async function getSalesStats(): Promise<SalesStats> {
   try {
     // جلب 1000 طلب فقط لحساب الإحصائيات (أسرع بكثير)
     const { data: orders, error, count } = await supabase
-      .from('pos_order')
+      .from('aumet_sales_orders')
       .select('amount_total, state', { count: 'exact' })
       .limit(30000); // حد أقصى للأمان
 
@@ -111,7 +111,7 @@ export async function getSalesOrdersByPeriod(
 ): Promise<SalesOrder[]> {
   try {
     let query = supabase
-      .from('pos_order')
+      .from('aumet_sales_orders')
       .select('*')
       .order('date_order', { ascending: false });
 
@@ -172,7 +172,7 @@ export async function getAllSalesOrders(): Promise<SalesOrder[]> {
   try {
     // جلب 1000 طلب فقط للعرض (أسرع بكثير)
     const { data, error } = await supabase
-      .from('pos_order')
+      .from('aumet_sales_orders')
       .select('*')
       .order('date_order', { ascending: false })
       .limit(1000);
@@ -207,7 +207,7 @@ export async function getAllSalesOrders(): Promise<SalesOrder[]> {
 export async function getAllCustomers(): Promise<Customer[]> {
   try {
     const { data, error } = await supabase
-      .from('res_partner')
+      .from('aumet_customers')
       .select('*')
       .order('name', { ascending: true })
 ;
@@ -239,7 +239,7 @@ export async function getAllCustomers(): Promise<Customer[]> {
 export async function getAllProducts(): Promise<Product[]> {
   try {
     const { data, error } = await supabase
-      .from('product_template')
+      .from('aumet_products')
       .select('*')
       .order('name', { ascending: true })
 ;
@@ -272,7 +272,7 @@ export async function getAllProducts(): Promise<Product[]> {
 export async function getCustomersCount(): Promise<number> {
   try {
     const { count, error } = await supabase
-      .from('res_partner')
+      .from('aumet_customers')
       .select('*', { count: 'exact', head: true });
 
     if (error) throw error;
@@ -289,7 +289,7 @@ export async function getCustomersCount(): Promise<number> {
 export async function getProductsCount(): Promise<number> {
   try {
     const { count, error} = await supabase
-      .from('product_template')
+      .from('aumet_products')
       .select('*', { count: 'exact', head: true });
 
     if (error) throw error;
@@ -337,7 +337,7 @@ export interface Supplier {
 export async function getAllSuppliers(): Promise<Supplier[]> {
   try {
     const { data, error } = await supabase
-      .from('res_partner')
+      .from('aumet_customers')
       .select('*')
       .gt('supplier_rank', 0)
       .order('name', { ascending: true })
@@ -369,7 +369,7 @@ export async function getAllSuppliers(): Promise<Supplier[]> {
 export async function getSuppliersCount(): Promise<number> {
   try {
     const { count, error } = await supabase
-      .from('res_partner')
+      .from('aumet_customers')
       .select('*', { count: 'exact', head: true })
       .gt('supplier_rank', 0);
 
