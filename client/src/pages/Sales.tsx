@@ -7,33 +7,34 @@ import Layout from "@/components/Layout";
 import { getAllSalesOrders, getSalesStats, getSalesOrdersByPeriod, type SalesOrder } from "@/lib/supabase";
 
 export default function Sales() {
-  const [selectedPeriod, setSelectedPeriod] = useState<'all' | 'daily' | 'monthly' | 'yearly'>('all');
+  const [selectedPeriod, setSelectedPeriod] = useState<'all' | 'daily' | 'monthly' | 'yearly'>('monthly');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  // استخدام الشهر الحالي كافتراضي (نوفمبر = 11)
+  const [selectedMonth, setSelectedMonth] = useState(11);
   // استخدام 2025 كسنة افتراضية لأن البيانات في Supabase من 2025
   const [selectedYear, setSelectedYear] = useState(2025);
   
   const [allOrders, setAllOrders] = useState<SalesOrder[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<SalesOrder[]>([]);
-  const [stats, setStats] = useState<any>(null);
+  // إزالة stats لأننا لا نحتاجها في صفحة المبيعات
+  // const [stats, setStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // جلب البيانات من Supabase
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setIsLoading(true);
-        const salesStats = await getSalesStats();
-        setStats(salesStats);
-      } catch (error) {
-        console.error('Error fetching sales data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchData();
-  }, []);
+  // إزالة جلب الإحصائيات الإجمالية - نعرض فقط إحصائيات الفترة المختارة
+  // useEffect(() => {
+  //   async function fetchData() {
+  //     try {
+  //       setIsLoading(true);
+  //       const salesStats = await getSalesStats();
+  //       setStats(salesStats);
+  //     } catch (error) {
+  //       console.error('Error fetching sales data:', error);
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   }
+  //   fetchData();
+  // }, []);
 
   // جلب الطلبات حسب الفترة من Supabase مباشرة
   useEffect(() => {
@@ -79,62 +80,7 @@ export default function Sales() {
           </p>
         </div>
 
-        {/* الإحصائيات الإجمالية */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <Card className="border-l-4 border-l-green-500">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">
-                  إجمالي المبيعات
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-green-600">
-                  {stats.totalSales.toLocaleString('ar-SA')} ريال
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-blue-500">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">
-                  عدد الطلبات
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-blue-600">
-                  {stats.totalOrders.toLocaleString('ar-SA')}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-purple-500">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">
-                  متوسط قيمة الطلب
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-purple-600">
-                  {stats.averageOrderValue.toLocaleString('ar-SA', { maximumFractionDigits: 2 })} ريال
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-orange-500">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">
-                  الطلبات المكتملة
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-orange-600">
-                  {stats.completedOrders.toLocaleString('ar-SA')}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+        {/* تم إزالة الإحصائيات الإجمالية - نعرض فقط إحصائيات الفترة المختارة */}
 
         {/* فلاتر الفترة */}
         <Card>
