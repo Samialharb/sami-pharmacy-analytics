@@ -91,8 +91,8 @@ export default function Purchases() {
       'المورد': order.supplier_name || `مورد #${order.partner_id}`,
       'المبلغ الإجمالي': order.amount_total.toFixed(2),
       'الحالة': getStateLabel(order.state),
-      'تاريخ الطلب': new Date(order.date_order).toLocaleDateString('ar-SA'),
-      'تاريخ الموافقة': order.date_approve ? new Date(order.date_approve).toLocaleDateString('ar-SA') : '-',
+      'تاريخ الطلب': new Date(order.date_order).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      'تاريخ الموافقة': order.date_approve ? new Date(order.date_approve).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-',
     }));
 
     const ws = XLSX.utils.json_to_sheet(data);
@@ -318,11 +318,11 @@ export default function Purchases() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {new Date(order.date_order).toLocaleDateString('ar-SA')}
+                        {new Date(order.date_order).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                       </TableCell>
                       <TableCell>
                         {order.date_approve 
-                          ? new Date(order.date_approve).toLocaleDateString('ar-SA')
+                          ? new Date(order.date_approve).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
                           : '-'
                         }
                       </TableCell>

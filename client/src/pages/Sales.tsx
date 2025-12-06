@@ -249,7 +249,7 @@ export default function Sales() {
                   : selectedPeriod === 'daily' 
                   ? `تقرير المبيعات اليومي - ${selectedDate}`
                   : selectedPeriod === 'monthly'
-                  ? `تقرير المبيعات الشهري - ${new Date(selectedYear, selectedMonth - 1).toLocaleDateString('ar-SA', { month: 'long', year: 'numeric' })}`
+                  ? `تقرير المبيعات الشهري - ${new Date(selectedYear, selectedMonth - 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}`
                   : `تقرير المبيعات السنوي - ${selectedYear}`;
                 
                 const statsData = {
@@ -276,7 +276,7 @@ export default function Sales() {
             <CardDescription>
               {selectedPeriod === 'all' && 'جميع الطلبات'}
               {selectedPeriod === 'daily' && `طلبات يوم ${selectedDate}`}
-              {selectedPeriod === 'monthly' && `طلبات شهر ${new Date(selectedYear, selectedMonth - 1).toLocaleDateString('ar-SA', { month: 'long', year: 'numeric' })}`}
+              {selectedPeriod === 'monthly' && `طلبات شهر ${new Date(selectedYear, selectedMonth - 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}`}
               {selectedPeriod === 'yearly' && `طلبات سنة ${selectedYear}`}
             </CardDescription>
           </CardHeader>
@@ -301,7 +301,7 @@ export default function Sales() {
                       <tr key={order.id} className="border-b hover:bg-gray-50">
                         <td className="px-4 py-3">{order.name}</td>
                         <td className="px-4 py-3">
-                          {new Date(order.date_order).toLocaleDateString('ar-SA')}
+                          {new Date(order.date_order).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                         </td>
                         <td className="px-4 py-3 font-semibold text-green-600">
                           {order.amount_total.toLocaleString('ar-SA')} ريال
