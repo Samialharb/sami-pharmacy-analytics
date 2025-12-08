@@ -1,9 +1,9 @@
 name: 🔄 Daily Sync Odoo to Supabase
 
 on:
-  # تشغيل يومي الساعة 2 صباحاً (UTC+3)
+  # تشغيل يومي الساعة 7 صباحاً (UTC+3)
   schedule:
-    - cron: '0 23 * * *'  # 2 AM UTC+3 = 11 PM UTC
+    - cron: '0 4 * * *'  # 7 AM UTC+3 = 4 AM UTC
   
   # تشغيل يدوي
   workflow_dispatch:

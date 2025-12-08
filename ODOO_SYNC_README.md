@@ -28,7 +28,7 @@ node scripts/sync_odoo_daily.mjs
 
 ### الطريقة 2️⃣: تلقائياً (GitHub Actions)
 
-المزامنة تعمل **يومياً الساعة 2 صباحاً** (UTC+3) تلقائياً.
+المزامنة تعمل **يومياً الساعة 7 صباحاً** (UTC+3) تلقائياً.
 
 **لتشغيل يدوي:**
 1. اذهب إلى: https://github.com/Samialharb/sami-pharmacy-analytics/actions
