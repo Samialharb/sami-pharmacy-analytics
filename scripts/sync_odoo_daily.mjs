@@ -17,7 +17,7 @@ const ODOO_USERNAME = 'sami@aumet.com';
 const ODOO_PASSWORD = 'Sami@1212';
 
 const SUPABASE_URL = 'https://ajcbqdlpovpxbzltbjfl.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqY2JxZGxwb3ZweGJ6bHRiamZsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcwMzA0NzI3MCwiZXhwIjoxNzE5NjI5MjcwfQ.3tirvt46-F_itUK-AMo2ddGBMvxV2rS9VqaK_PegeA';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqY2JxZGxwb3ZweGJ6bHRiamZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyMjc0ODQsImV4cCI6MjA3NzgwMzQ4NH0.-3tirvt46-F_itUK-AMo2ddGBMvxV2rS9VqaK_PegeA';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -81,47 +81,99 @@ async function syncData() {
       }
     ]);
     console.log(`✅ تم سحب ${orders.length} طلب`);
-    const ordersInserted = await insertData('pos_order', orders);
+    
+    // تنظيف البيانات - تحويل القيم غير الصحيحة
+    const cleanedOrders = orders.map(order => ({
+      ...order,
+      partner_id: typeof order.partner_id === 'object' ? order.partner_id[0] : order.partner_id,
+      amount_total: parseFloat(order.amount_total) || 0,
+      amount_paid: parseFloat(order.amount_paid) || 0
+    }));
+    
+    const ordersInserted = await insertData('pos_order', cleanedOrders);
     console.log(`💾 تم إدراج ${ordersInserted} طلب في Supabase`);
 
     // 2. سحب العملاء
     console.log('\n👥 سحب العملاء...');
-    const customers = await callOdoo('search_read', 'res.partner', [
-      [['customer_rank', '>', 0]],
-      { 
-        fields: ['id', 'name', 'email', 'phone', 'mobile', 'city', 'country_id'],
-        limit: 100000
-      }
-    ]);
-    console.log(`✅ تم سحب ${customers.length} عميل`);
-    const customersInserted = await insertData('res_partner', customers);
-    console.log(`💾 تم إدراج ${customersInserted} عميل في Supabase`);
+    try {
+      const customers = await callOdoo('search_read', 'res.partner', [
+        [['customer_rank', '>', 0]],
+        { 
+          fields: ['id', 'name', 'email', 'phone', 'mobile', 'city', 'country_id'],
+          limit: 100000
+        }
+      ]);
+      console.log(`✅ تم سحب ${customers.length} عميل`);
+      const customersInserted = await insertData('res_partner', customers);
+      console.log(`💾 تم إدراج ${customersInserted} عميل في Supabase`);
+    } catch (error) {
+      console.warn(`⚠️  تحذير: فشل سحب العملاء - ${error.message}`);
+      console.log('🔄 محاولة سحب جميع الشركاء بدون فلتر...');
+      const allPartners = await callOdoo('search_read', 'res.partner', [
+        [],
+        { 
+          fields: ['id', 'name', 'email', 'phone', 'mobile', 'city', 'country_id'],
+          limit: 100000
+        }
+      ]);
+      console.log(`✅ تم سحب ${allPartners.length} شريك`);
+      const partnersInserted = await insertData('res_partner', allPartners);
+      console.log(`💾 تم إدراج ${partnersInserted} شريك في Supabase`);
+    }
 
     // 3. سحب المنتجات
     console.log('\n📦 سحب المنتجات...');
-    const products = await callOdoo('search_read', 'product.product', [
-      [['active', '=', true]],
-      { 
-        fields: ['id', 'name', 'default_code', 'list_price', 'standard_price', 'qty_available', 'categ_id'],
-        limit: 100000
-      }
-    ]);
-    console.log(`✅ تم سحب ${products.length} منتج`);
-    const productsInserted = await insertData('product_product', products);
-    console.log(`💾 تم إدراج ${productsInserted} منتج في Supabase`);
+    try {
+      const products = await callOdoo('search_read', 'product.product', [
+        [['active', '=', true]],
+        { 
+          fields: ['id', 'name', 'default_code', 'list_price', 'standard_price', 'qty_available', 'categ_id'],
+          limit: 100000
+        }
+      ]);
+      console.log(`✅ تم سحب ${products.length} منتج`);
+      
+      // تنظيف البيانات
+      const cleanedProducts = products.map(product => ({
+        ...product,
+        categ_id: typeof product.categ_id === 'object' ? product.categ_id[0] : product.categ_id,
+        list_price: parseFloat(product.list_price) || 0,
+        standard_price: parseFloat(product.standard_price) || 0,
+        qty_available: parseFloat(product.qty_available) || 0
+      }));
+      
+      const productsInserted = await insertData('product_product', cleanedProducts);
+      console.log(`💾 تم إدراج ${productsInserted} منتج في Supabase`);
+    } catch (error) {
+      console.warn(`⚠️  تحذير: فشل سحب المنتجات - ${error.message}`);
+    }
 
     // 4. سحب المخزون
     console.log('\n📊 سحب المخزون...');
-    const inventory = await callOdoo('search_read', 'stock.quant', [
-      [],
-      { 
-        fields: ['id', 'product_id', 'location_id', 'quantity', 'reserved_quantity'],
-        limit: 100000
-      }
-    ]);
-    console.log(`✅ تم سحب ${inventory.length} سجل مخزون`);
-    const inventoryInserted = await insertData('stock_quant', inventory);
-    console.log(`💾 تم إدراج ${inventoryInserted} سجل مخزون في Supabase`);
+    try {
+      const inventory = await callOdoo('search_read', 'stock.quant', [
+        [],
+        { 
+          fields: ['id', 'product_id', 'location_id', 'quantity', 'reserved_quantity'],
+          limit: 100000
+        }
+      ]);
+      console.log(`✅ تم سحب ${inventory.length} سجل مخزون`);
+      
+      // تنظيف البيانات
+      const cleanedInventory = inventory.map(item => ({
+        ...item,
+        product_id: typeof item.product_id === 'object' ? item.product_id[0] : item.product_id,
+        location_id: typeof item.location_id === 'object' ? item.location_id[0] : item.location_id,
+        quantity: parseFloat(item.quantity) || 0,
+        reserved_quantity: parseFloat(item.reserved_quantity) || 0
+      }));
+      
+      const inventoryInserted = await insertData('stock_quant', cleanedInventory);
+      console.log(`💾 تم إدراج ${inventoryInserted} سجل مخزون في Supabase`);
+    } catch (error) {
+      console.warn(`⚠️  تحذير: فشل سحب المخزون - ${error.message}`);
+    }
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     const total = ordersInserted + customersInserted + productsInserted + inventoryInserted;
